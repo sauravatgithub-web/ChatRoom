@@ -17,46 +17,40 @@ void error(const char* msg) {
 }
 
 int socket_fd;
+char* fileName;
 
 void encrypt_message(char *input, char *encrypted) {
     int len = strlen(input);
     int pos = 0;
     int last = 0;
 
-    // If input starts with '@', copy characters until the first space
-    if (input[0] == '@') {
-        while (input[last] != ' ' && input[last] != '\0') { // Ensure not to go out of bounds
+    if(input[0] == '@') {
+        while(input[last] != ' ' && input[last] != '\0') { 
             encrypted[pos++] = input[last++];
         }
-        if (input[last] == ' ') { // Copy the space too
-            encrypted[pos++] = input[last++];
-        }
+        if(input[last] == ' ') encrypted[pos++] = input[last++];
     }
 
-    // Reverse and convert remaining characters to three-digit ASCII codes
-    for (int i = len - 1; i >= last; i--) {
+    for(int i = len - 1; i >= last; i--) {
         pos += sprintf(encrypted + pos, "%03d", (unsigned char)input[i]);
     }
 
-    encrypted[pos] = '\0'; // Null-terminate the string
+    encrypted[pos] = '\0'; 
 }
 
 void decrypt_message(const char *input, char *decrypted) {
     int i = 0, j = 0;
 
-    // Find where the encryption starts (first occurrence of a three-digit ASCII code)
-    while (input[i]!='\0' && !(input[i]>='0' && input[i]<='9' && input[i+1] >= '0' && input[i+1]<='9' && input[i + 2]>='0' && input[i+2]<='9')){
-        decrypted[j++] = input[i++]; // Copy non-encrypted part
+    while(input[i] != '\0' && !(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9')) {
+        decrypted[j++] = input[i++];
     }
 
-    // Process encrypted portion
     int len = strlen(input);
-    char temp[4]; // Buffer for 3-digit ASCII codes
+    char temp[4]; 
     int revIndex = 0, revLen = (len - i) / 3;
     char reversed[revLen + 1];
 
-    // Convert ASCII codes back to characters and store in reversed order
-    while (input[i] >= '0' && input[i] <= '9' && input[i + 1] >= '0' && input[i + 1] <= '9' && input[i + 2] >= '0' && input[i + 2] <= '9') {
+    while(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9') {
         strncpy(temp, input + i, 3);
         temp[3] = '\0';
         reversed[revIndex++] = (char)atoi(temp);
@@ -64,31 +58,35 @@ void decrypt_message(const char *input, char *decrypted) {
     }
 
     reversed[revIndex] = '\0';
-
-    // Reverse back to original order
-    for (int k = revIndex - 1; k >= 0; k--) {
-        decrypted[j++] = reversed[k];
-    }
-
+    for(int k = revIndex - 1; k >= 0; k--) decrypted[j++] = reversed[k];
 
     decrypted[j] = '\0';
 }
 
 void* listen_for_messages(void* arg) {
+    FILE* chatPad = (FILE*)arg;
+
+    if(!chatPad) {
+        perror("Error opening chat file in thread");
+        return NULL;
+    }
+
     char buffer[BUFFER_SIZE];
-    char decrypt[BUFFER_SIZE*3];
+    char decrypt[BUFFER_SIZE * 3];
+
     while(true) {
         memset(buffer, 0, BUFFER_SIZE);
         ssize_t n = read(socket_fd, buffer, BUFFER_SIZE - 1);
-        if(n > 0) {
-            buffer[n] = '\0';  
+        if (n > 0) {
+            buffer[n] = '\0';
             decrypt_message(buffer, decrypt);
-            printf("\n%s\n", decrypt);
-            printf("Enter message: ");
+            fprintf(chatPad, "%s\n", decrypt);
+            fflush(chatPad); 
             fflush(stdout);
         } 
-        else if(n == 0) {
+        else if (n == 0) {
             printf("\nServer closed the connection. Exiting...\n");
+            fclose(chatPad);
             exit(0);
         } 
         else error("ERROR reading from socket");
@@ -101,7 +99,7 @@ int main(int argc, char* argv[]) {
     struct sockaddr_in server_address;
     struct hostent* server;
     char buffer[BUFFER_SIZE];
-    char encrypt[BUFFER_SIZE*3];
+    char encrypt[BUFFER_SIZE * 3];
 
     if(argc < 4) {
         fprintf(stderr, "Usage: %s <hostname> <port> <name>\n", argv[0]);
@@ -126,22 +124,37 @@ int main(int argc, char* argv[]) {
 
     if(connect(socket_fd, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) error("ERROR connecting");
 
+    bzero(buffer, BUFFER_SIZE);
     snprintf(buffer, BUFFER_SIZE, "%s\n", argv[3]);
+
+    fileName = (char*)malloc(strlen(argv[3]) + 5);
+    if(!fileName) error("Memory allocation failed");
+    snprintf(fileName, strlen(argv[3]) + 5, "%s.txt", argv[3]);
+    printf("fileName: %s\n", fileName);
+
+    FILE* chatPad = fopen(fileName, "a+");
+    if(!chatPad) error("ERROR opening chat file");
+
     if(write(socket_fd, buffer, strlen(buffer)) < 0) error("ERROR sending name");
 
     pthread_t listener_thread;
-    if(pthread_create(&listener_thread, NULL, listen_for_messages, NULL) != 0) error("ERROR creating thread");
+    if(pthread_create(&listener_thread, NULL, listen_for_messages, chatPad) != 0) error("ERROR creating thread");
 
-    while (1) {
+    while(true) {
         printf("Enter message: ");
         memset(buffer, 0, BUFFER_SIZE);
         fgets(buffer, BUFFER_SIZE, stdin);
-
         buffer[strcspn(buffer, "\n")] = 0; 
+
+        fprintf(chatPad, "Me: %s\n", buffer);
+        fflush(chatPad); 
+
         encrypt_message(buffer, encrypt);
         if(write(socket_fd, encrypt, strlen(encrypt)) < 0) error("ERROR writing to socket");
     }
 
+    fclose(chatPad);
+    free(fileName);
     close(socket_fd);
     return 0;
 }

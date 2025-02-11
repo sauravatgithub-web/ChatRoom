@@ -113,7 +113,6 @@ int main(int argc, char *argv[]) {
                 else {
                     memset(buffer, 0, BUFFER_SIZE);
                     ssize_t n = read(i, buffer, BUFFER_SIZE - 1);
-                    printf("%s\n",buffer);
                     if(n <= 0) {
                         remove_client_from_list(i);
                         FD_CLR(i, &master_fds);
