@@ -1,3 +1,5 @@
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -44,9 +46,10 @@ void decrypt_message(const char *input, char *decrypted) {
     // while(input[i] != '\0' && !(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9')) {
     //     decrypted[j++] = input[i++];
     // }
-    while(input[i]!=':'){
+    while(input[i]!=' '){
         decrypted[j++] = input[i++];
     }
+    decrypted[j++] = input[i++];
     decrypted[j++] = input[i++];
     decrypted[j++] = input[i++];
 
