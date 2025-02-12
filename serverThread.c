@@ -54,8 +54,10 @@ void *myClientThread(void* ind){
             char target_name[50],message[BUFFER_SIZE];
             sscanf(buffer, "@%s %[^\n]", target_name, message);
 
+            int found = 0;
             for (int i=0;i<MAX_CLIENTS; i++){
                 if(clients[i].socket != 0 && strcmp(clients[i].name,target_name)==0){
+                    found = 1;
                     char private_message[BUFFER_SIZE+50];
                     bzero(private_message,sizeof(private_message));
                     snprintf(private_message,sizeof(private_message),"%s : %s",clients[index].name,message);
@@ -63,6 +65,14 @@ void *myClientThread(void* ind){
                     n = write(clients[i].socket,private_message,strlen(private_message));
                     if (n < 0) perror("ERROR writing to socket");
                 }
+            }
+            if(found==0){
+                char private_message[BUFFER_SIZE+50];
+                bzero(private_message,sizeof(private_message));
+                snprintf(private_message,sizeof(private_message),"%s NOT FOUND...",target_name);
+
+                n = write(clients[index].socket,private_message,strlen(private_message));
+                if (n < 0) perror("ERROR writing to socket");
             }
         }
         else{
