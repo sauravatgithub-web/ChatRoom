@@ -1,5 +1,4 @@
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -86,6 +85,12 @@ void* listen_messages(void *arg){
         ssize_t n = read(sockfd, buffer, BUFFER_SIZE - 1);
         if(n > 0) {
             buffer[n] = '\0';
+            printf("%s\n",buffer);
+            if(strcmp(buffer,"Kicked Out...")==0){
+                printf("\nYou have been kicked out...\n");
+                fclose(chatPad);
+                exit(EXIT_FAILURE);
+            }
             decrypt_message(buffer, decrypt);
             fprintf(chatPad, "%s\n", decrypt);
             fflush(chatPad);
