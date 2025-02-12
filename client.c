@@ -77,14 +77,14 @@ void* listen_for_messages(void* arg) {
     while(true) {
         memset(buffer, 0, BUFFER_SIZE);
         ssize_t n = read(socket_fd, buffer, BUFFER_SIZE - 1);
-        if (n > 0) {
+        if(n > 0) {
             buffer[n] = '\0';
             decrypt_message(buffer, decrypt);
             fprintf(chatPad, "%s\n", decrypt);
             fflush(chatPad); 
             fflush(stdout);
         } 
-        else if (n == 0) {
+        else if(n == 0) {
             printf("\nServer closed the connection. Exiting...\n");
             fclose(chatPad);
             exit(0);

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -16,6 +17,7 @@ void error(char *msg){
 }
 
 int sockfd;
+char* fileName;
 
 void encrypt_message(char *input, char *encrypted) {
     int len = strlen(input);
@@ -64,39 +66,45 @@ void decrypt_message(const char *input, char *decrypted) {
 void* listen_messages(void *arg){
     char buffer[BUFFER_SIZE];
     char decrypt[BUFFER_SIZE * 3];
-    ssize_t n;
 
-    while(1){
-        bzero(buffer,256);
-        n = read(sockfd,buffer,255);
+    FILE* chatPad = (FILE*)arg;
+    if(!chatPad) {
+        perror("Error opening chat file in thread");
+        return NULL;
+    }
 
-        if(n < 0) error("ERROR reading from socket"); 
-
-        if(n == 0) {
+    while(true){
+        memset(buffer, 0, BUFFER_SIZE);
+        ssize_t n = read(sockfd, buffer, BUFFER_SIZE - 1);
+        if(n > 0) {
+            buffer[n] = '\0';
+            decrypt_message(buffer, decrypt);
+            fprintf(chatPad, "%s\n", decrypt);
+            fflush(chatPad);
+            fflush(stdout);
+        }
+        else if(n == 0) {
             printf("\nServer closed the connection. Exiting...\n");
+            fclose(chatPad);
             exit(0);
         }
-        decrypt_message(buffer, decrypt);
-        printf("\n%s\n", decrypt);
-        printf("Enter message: ");
-        fflush(stdout);        
+        else error("ERROR reading from socket"); 
+            
     }
-    pthread_exit(NULL);
+    return NULL;
 }
 
 int main(int argc, char *argv[]){
     int portno;
     ssize_t n;
-
     struct sockaddr_in server_address;
     struct hostent *server;
-
     char buffer[BUFFER_SIZE];
     char encrypt[BUFFER_SIZE * 3];
 
-    if (argc < 4) {
+    if(argc < 4) {
        fprintf(stderr, "Usage: %s <hostname> <port> <name>\n", argv[0]);
-       exit(0);
+       exit(1);
     }
     portno = atoi(argv[2]);
 
@@ -114,26 +122,39 @@ int main(int argc, char *argv[]){
     bcopy((char *)server->h_addr_list[0], (char *)&server_address.sin_addr.s_addr, server->h_length);
     server_address.sin_port = htons(portno);
 
-    if (connect(sockfd,(struct sockaddr *)&server_address,sizeof(server_address)) < 0){
-        error("ERROR connecting");
-    }
+    if(connect(sockfd,(struct sockaddr *)&server_address,sizeof(server_address)) < 0) error("ERROR connecting");
 
-    bzero(buffer,256);
+    bzero(buffer, BUFFER_SIZE);
     snprintf(buffer, BUFFER_SIZE, "%s", argv[3]);
+
+    fileName = (char*)malloc(strlen(argv[3]) + 5);
+    if(!fileName) error("Memory allocation failed");
+    snprintf(fileName, strlen(argv[3]) + 5, "%s.txt", argv[3]);
+    printf("fileName: %s\n", fileName);
+
+    FILE* chatPad = fopen(fileName, "a+");
+    if(!chatPad) error("ERROR opening chat file");
+
     if(write(sockfd, buffer, strlen(buffer)) < 0) error("ERROR sending name");
     
     pthread_t listener_thread;
-    if(pthread_create(&listener_thread, NULL, listen_messages, NULL)<0){
-        error("ERROR creating thread");
+    if(pthread_create(&listener_thread, NULL, listen_messages, chatPad) != 0) error("ERROR creating thread");
+
+    while(true) {
+        printf("Enter message: ");
+        bzero(buffer, BUFFER_SIZE);
+        fgets(buffer, BUFFER_SIZE ,stdin);
+        buffer[strcspn(buffer, "\n")] = 0; 
+
+        fprintf(chatPad, "Me: %s\n", buffer);
+        fflush(chatPad);
+
+        encrypt_message(buffer, encrypt);
+        if(write(sockfd, encrypt, strlen(encrypt)) < 0) error("ERROR writing to socket");
     }
 
-    while(1){
-        printf("Enter message: ");
-        bzero(buffer,256);
-        fgets(buffer,255,stdin);
-        encrypt_message(buffer, encrypt);
-        n = write(sockfd,encrypt,strlen(encrypt));
-        if (n < 0) error("ERROR writing to socket");
-    }
+    fclose(chatPad);
+    free(fileName);
+    close(sockfd);
     return 0;
 }
