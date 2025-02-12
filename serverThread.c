@@ -43,7 +43,7 @@ void *myClientThread(void* ind){
     strncpy(clients[index].name, buffer, sizeof(clients[index].name) - 1);
     clients[index].name[sizeof(clients[index].name) - 1] = '\0';
 
-    while(1){
+    while(clients[index].socket!=0){
         bzero(buffer,256);
         n = read(clients[index].socket,buffer,255);
         if (n <= 0) {
@@ -109,6 +109,45 @@ void *myClientThread(void* ind){
     pthread_exit(NULL);
 }
 
+void *server_thread(void *arg){
+    char buffer[BUFFER_SIZE];
+    ssize_t n;
+
+    while(1){
+        bzero(buffer, BUFFER_SIZE);
+        fgets(buffer, BUFFER_SIZE-1, stdin);
+        buffer[strcspn(buffer, "\n")] = 0;
+        fflush(stdout);  
+
+        char target_name[50];
+        bzero(target_name,sizeof(target_name));
+        sscanf(buffer, "REMOVE %s", target_name);
+        printf("%s\n",target_name);  
+
+        int found = 0;
+        for (int i=0;i<MAX_CLIENTS; i++){
+            if(clients[i].socket != 0 && strcmp(clients[i].name,target_name)==0){
+
+                char message[BUFFER_SIZE];
+                snprintf(message, sizeof(message), "Kicked Out...");
+                write(clients[i].socket, message, strlen(message)); 
+
+                close(clients[i].socket);
+                clients[i].socket = 0;
+                bzero(clients[i].name, sizeof(clients[i].name));
+                found = 1;
+                fflush(stdin);
+                break;
+            }
+        }
+        if(found==0){
+            printf("%s NOT FOUND IN THE CHAT...\n",target_name);
+            fflush(stdin);
+        }     
+    }
+    pthread_exit(NULL);
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd, portno;
@@ -136,6 +175,14 @@ int main(int argc, char *argv[])
     listen(sockfd,5);
     clilen = sizeof(cli_addr);
     printf("Server Started at port %d\n",portno);
+
+    pthread_t serverThread;
+    if(pthread_create(&serverThread,NULL,server_thread,NULL)<0){
+        perror("Error in creating thread");
+        close(sockfd);
+    }
+    pthread_detach(serverThread);
+
     while(1){    
         int *newsockfd = malloc(sizeof(int));
 
