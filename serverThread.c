@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <time.h> 
 
 #define BUFFER_SIZE 256
 #define MAX_CLIENTS 10
@@ -17,8 +18,13 @@ typedef struct{
 
 Client clients[MAX_CLIENTS];
 
-void error(char *msg)
-{
+void getTimeStamp(char *timestamp, size_t size) {
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    strftime(timestamp, size, "[%H:%M]", t);
+}
+
+void error(char *msg){
     perror(msg);
     exit(1);
 }
@@ -54,20 +60,25 @@ void *myClientThread(void* ind){
             char target_name[50],message[BUFFER_SIZE];
             sscanf(buffer, "@%s %[^\n]", target_name, message);
 
+            char timestamp[30];
+            bzero(timestamp,sizeof(timestamp));
+            getTimeStamp(timestamp, sizeof(timestamp));
+
             int found = 0;
             for (int i=0;i<MAX_CLIENTS; i++){
                 if(clients[i].socket != 0 && strcmp(clients[i].name,target_name)==0){
-                    found = 1;
-                    char private_message[BUFFER_SIZE+50];
+                    char private_message[BUFFER_SIZE+50+30];
                     bzero(private_message,sizeof(private_message));
-                    snprintf(private_message,sizeof(private_message),"%s : %s",clients[index].name,message);
+                    snprintf(private_message,sizeof(private_message),"%s%s : %s",timestamp,clients[index].name,message);
 
                     n = write(clients[i].socket,private_message,strlen(private_message));
                     if (n < 0) perror("ERROR writing to socket");
+                    found = 1;
+                    break;
                 }
             }
             if(found==0){
-                char private_message[BUFFER_SIZE+50];
+                char private_message[BUFFER_SIZE+50+30];
                 bzero(private_message,sizeof(private_message));
                 snprintf(private_message,sizeof(private_message),"%s NOT FOUND...",target_name);
 
@@ -77,9 +88,14 @@ void *myClientThread(void* ind){
         }
         else{
             //BROADCASTING
-            char message[BUFFER_SIZE+50];
+            char timestamp[30];
+            bzero(timestamp,sizeof(timestamp));
+            getTimeStamp(timestamp, sizeof(timestamp));
+
+            printf("%s",timestamp);
+            char message[BUFFER_SIZE+50+30];
             bzero(message,sizeof(message));
-            snprintf(message,sizeof(message),"[BROADCASTING] %s : %s",clients[index].name,buffer);
+            snprintf(message,sizeof(message),"[BROADCASTING]%s%s : %s",timestamp,clients[index].name,buffer);
 
             for(int i=0;i<MAX_CLIENTS;i++){
                 if(i!=index && clients[i].socket!=0){
