@@ -17,8 +17,53 @@ void error(char *msg){
 
 int sockfd;
 
+void encrypt_message(char *input, char *encrypted) {
+    int len = strlen(input);
+    int pos = 0;
+    int last = 0;
+
+    if(input[0] == '@') {
+        while(input[last] != ' ' && input[last] != '\0') { 
+            encrypted[pos++] = input[last++];
+        }
+        if(input[last] == ' ') encrypted[pos++] = input[last++];
+    }
+
+    for(int i = len - 1; i >= last; i--) {
+        pos += sprintf(encrypted + pos, "%03d", (unsigned char)input[i]);
+    }
+
+    encrypted[pos] = '\0'; 
+}
+
+void decrypt_message(const char *input, char *decrypted) {
+    int i = 0, j = 0;
+
+    while(input[i] != '\0' && !(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9')) {
+        decrypted[j++] = input[i++];
+    }
+
+    int len = strlen(input);
+    char temp[4]; 
+    int revIndex = 0, revLen = (len - i) / 3;
+    char reversed[revLen + 1];
+
+    while(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9') {
+        strncpy(temp, input + i, 3);
+        temp[3] = '\0';
+        reversed[revIndex++] = (char)atoi(temp);
+        i += 3;
+    }
+
+    reversed[revIndex] = '\0';
+    for(int k = revIndex - 1; k >= 0; k--) decrypted[j++] = reversed[k];
+
+    decrypted[j] = '\0';
+}
+
 void* listen_messages(void *arg){
     char buffer[BUFFER_SIZE];
+    char decrypt[BUFFER_SIZE * 3];
     ssize_t n;
 
     while(1){
@@ -31,7 +76,8 @@ void* listen_messages(void *arg){
             printf("\nServer closed the connection. Exiting...\n");
             exit(0);
         }
-        printf("\n%s\n", buffer);
+        decrypt_message(buffer, decrypt);
+        printf("\n%s\n", decrypt);
         printf("Enter message: ");
         fflush(stdout);        
     }
@@ -46,6 +92,8 @@ int main(int argc, char *argv[]){
     struct hostent *server;
 
     char buffer[BUFFER_SIZE];
+    char encrypt[BUFFER_SIZE * 3];
+
     if (argc < 4) {
        fprintf(stderr, "Usage: %s <hostname> <port> <name>\n", argv[0]);
        exit(0);
@@ -80,10 +128,11 @@ int main(int argc, char *argv[]){
     }
 
     while(1){
-        printf("Please enter the message: ");
+        printf("Enter message: ");
         bzero(buffer,256);
         fgets(buffer,255,stdin);
-        n = write(sockfd,buffer,strlen(buffer));
+        encrypt_message(buffer, encrypt);
+        n = write(sockfd,encrypt,strlen(encrypt));
         if (n < 0) error("ERROR writing to socket");
     }
     return 0;
