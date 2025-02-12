@@ -41,9 +41,14 @@ void encrypt_message(char *input, char *encrypted) {
 void decrypt_message(const char *input, char *decrypted) {
     int i = 0, j = 0;
 
-    while(input[i] != '\0' && !(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9')) {
+    // while(input[i] != '\0' && !(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9')) {
+    //     decrypted[j++] = input[i++];
+    // }
+    while(input[i]!=':'){
         decrypted[j++] = input[i++];
     }
+    decrypted[j++] = input[i++];
+    decrypted[j++] = input[i++];
 
     int len = strlen(input);
     char temp[4]; 
