@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
         error("ERROR on binding");
     listen(sockfd,5);
     clilen = sizeof(cli_addr);
-
+    printf("Server Started at port %d\n",portno);
     while(1){    
         int *newsockfd = malloc(sizeof(int));
 

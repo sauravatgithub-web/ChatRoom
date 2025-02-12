@@ -1,0 +1,5 @@
+*.txt
+client
+clientThread
+server
+serverThread
