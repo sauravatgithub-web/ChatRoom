@@ -31,7 +31,7 @@ void error(char *msg){
     exit(1);
 }
 
-void *client_thread(void* ind){
+void* myClientThreadFunc(void* ind){
     int index = *((int*)ind);
     free(ind);
 
@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
                 int* client_index = malloc(sizeof(int));
                 *client_index = i;
 
-                if(pthread_create(&client_thread, NULL, client_thread, client_index) < 0) {
+                if(pthread_create(&client_thread, NULL, myClientThreadFunc, client_index) < 0) {
                     perror("Error in creating thread");
                     close(*newsockfd);
                     free(newsockfd);

@@ -9,7 +9,7 @@
 #include <netdb.h>
 #include <pthread.h>
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 512
 
 void error(char *msg){
     perror(msg);
@@ -44,7 +44,11 @@ void encrypt_message(char* input, char* encrypted) {
         }
         encrypted[pos++] = ' ';
         
-        char* temp = realloc(input, 1024 * sizeof(char));
+        char* temp = (char*)realloc(input, sizeof(char) * 1024);
+        if(temp == NULL) {
+            fprintf(stderr, "Memory reallocation failed\n");
+            return;
+        }
         input = temp;
         input[last++] = ' ';
 
@@ -66,7 +70,7 @@ void encrypt_message(char* input, char* encrypted) {
 
 void decrypt_message(char* input, char* decrypted) {
     int i = 0, j = 0;
-    char* fileName;
+    char fileName[256];
     bool gotFile = false;
 
     while(input[i] != ' ') decrypted[j++] = input[i++]; 
@@ -99,6 +103,7 @@ void decrypt_message(char* input, char* decrypted) {
 
     if(!gotFile) {
         for(int k = revIndex - 1; k >= 0; k--) decrypted[j++] = reversed[k];
+        decrypted[j] = '\0';
     }
     else {
         FILE* file = fopen(fileName, "a+");
@@ -107,17 +112,15 @@ void decrypt_message(char* input, char* decrypted) {
         }
         fclose(file);
 
-        char message[256];
+        char message[512];
         snprintf(message, sizeof(message), "I sent you a file named %s", fileName);
         strcat(decrypted, message);
     }
-
-    decrypted[j] = '\0';
 }
 
 void* listen_messages(void *arg) {
-    char buffer[BUFFER_SIZE];
-    char decrypt[BUFFER_SIZE * 3];
+    char* buffer = (char*)malloc(BUFFER_SIZE);
+    char* decrypt = (char*)malloc(BUFFER_SIZE * 3);
 
     FILE* chatPad = (FILE*)arg;
     if(!chatPad) {
@@ -130,7 +133,6 @@ void* listen_messages(void *arg) {
         ssize_t n = read(sockfd, buffer, BUFFER_SIZE - 1);
         if(n > 0) {
             buffer[n] = '\0';
-            printf("%s\n",buffer);
             if(strcmp(buffer,"Kicked Out...")==0){
                 printf("\nYou have been kicked out...\n");
                 fclose(chatPad);
@@ -157,8 +159,8 @@ int main(int argc, char *argv[]) {
     ssize_t n;
     struct sockaddr_in server_address;
     struct hostent *server;
-    char buffer[BUFFER_SIZE];
-    char encrypt[BUFFER_SIZE * 3];
+    char* buffer = (char*)malloc(BUFFER_SIZE);
+    char* encrypt = (char*)malloc(BUFFER_SIZE * 3);
 
     if(argc < 4) {
        fprintf(stderr, "Usage: %s <hostname> <port> <name>\n", argv[0]);
