@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,7 +19,7 @@ void error(char *msg){
 int sockfd;
 char* fileName;
 
-void encrypt_message(char *input, char *encrypted) {
+void encrypt_message(char* input, char* encrypted) {
     int len = strlen(input);
     int pos = 0;
     int last = 0;
@@ -32,6 +31,32 @@ void encrypt_message(char *input, char *encrypted) {
         if(input[last] == ' ') encrypted[pos++] = input[last++];
     }
 
+    if(input[last] == '@') {
+        while(input[last] != ' ' && input[last] != '\0') { 
+            encrypted[pos++] = input[last++];
+        }
+        if(input[last] == ' ') encrypted[pos++] = input[last++];
+        char* fileName = (char*)malloc(sizeof(char) * (len-last+1));
+        snprintf(fileName, len - last + 1, "%s", input + last);
+
+        while(input[last] != '\0') {
+            encrypted[pos++] = input[last++];
+        }
+        encrypted[pos++] = ' ';
+        
+        char* temp = realloc(input, 1024 * sizeof(char));
+        input = temp;
+        input[last++] = ' ';
+
+        FILE* file = fopen(fileName, "r");
+        char fileData[1024];
+        fgets(fileData, sizeof(fileData), file);
+        
+        fclose(file);
+        strcat(input, fileData);
+    }
+    
+    len = strlen(input);
     for(int i = len - 1; i >= last; i--) {
         pos += sprintf(encrypted + pos, "%03d", (unsigned char)input[i]);
     }
@@ -39,18 +64,25 @@ void encrypt_message(char *input, char *encrypted) {
     encrypted[pos] = '\0'; 
 }
 
-void decrypt_message(const char *input, char *decrypted) {
+void decrypt_message(char* input, char* decrypted) {
     int i = 0, j = 0;
+    char* fileName;
+    bool gotFile = false;
 
-    // while(input[i] != '\0' && !(input[i] >= '0' && input[i] <= '9' && input[i+1] >= '0' && input[i+1] <= '9' && input[i+2] >= '0' && input[i+2] <= '9')) {
-    //     decrypted[j++] = input[i++];
-    // }
-    while(input[i]!=' '){
-        decrypted[j++] = input[i++];
+    while(input[i] != ' ') decrypted[j++] = input[i++]; 
+    decrypted[j++] = input[i++];
+    decrypted[j++] = input[i++];
+    decrypted[j++] = input[i++];
+
+    if(input[i] == '@') {
+        gotFile = true;
+        i += 6;
+        int k = 1;
+        while(input[i + k - 1] != ' ') k++;
+        strncpy(fileName, input + i, k-1);
+        fileName[k-1] = '\0';
+        i += k;
     }
-    decrypted[j++] = input[i++];
-    decrypted[j++] = input[i++];
-    decrypted[j++] = input[i++];
 
     int len = strlen(input);
     char temp[4]; 
@@ -63,14 +95,27 @@ void decrypt_message(const char *input, char *decrypted) {
         reversed[revIndex++] = (char)atoi(temp);
         i += 3;
     }
-
     reversed[revIndex] = '\0';
-    for(int k = revIndex - 1; k >= 0; k--) decrypted[j++] = reversed[k];
+
+    if(!gotFile) {
+        for(int k = revIndex - 1; k >= 0; k--) decrypted[j++] = reversed[k];
+    }
+    else {
+        FILE* file = fopen(fileName, "a+");
+        for(int k = revIndex - 1; k >= 0; k--) {
+            fprintf(file, "%c", reversed[k]);
+        }
+        fclose(file);
+
+        char message[256];
+        snprintf(message, sizeof(message), "I sent you a file named %s", fileName);
+        strcat(decrypted, message);
+    }
 
     decrypted[j] = '\0';
 }
 
-void* listen_messages(void *arg){
+void* listen_messages(void *arg) {
     char buffer[BUFFER_SIZE];
     char decrypt[BUFFER_SIZE * 3];
 
@@ -89,7 +134,7 @@ void* listen_messages(void *arg){
             if(strcmp(buffer,"Kicked Out...")==0){
                 printf("\nYou have been kicked out...\n");
                 fclose(chatPad);
-                exit(EXIT_FAILURE);
+                _exit(EXIT_FAILURE);
             }
             decrypt_message(buffer, decrypt);
             fprintf(chatPad, "%s\n", decrypt);
@@ -107,7 +152,7 @@ void* listen_messages(void *arg){
     return NULL;
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
     int portno;
     ssize_t n;
     struct sockaddr_in server_address;
@@ -122,10 +167,10 @@ int main(int argc, char *argv[]){
     portno = atoi(argv[2]);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) error("ERROR opening socket");
+    if(sockfd < 0) error("ERROR opening socket");
     
     server = gethostbyname(argv[1]);
-    if (server == NULL) {
+    if(server == NULL) {
         fprintf(stderr,"ERROR, no such host\n");
         exit(0);
     }
