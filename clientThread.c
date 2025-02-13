@@ -16,14 +16,24 @@ void error(char *msg){
     exit(0);
 }
 
+// unique sockedId for a client
 int sockfd;
+
+// message receiver from other clients will be present inside this file
 char* fileName;
 
 void encrypt_message(char* input, char* encrypted) {
+    // to send encrypted message to server
+    // message format "@username <message>"
+    // file format "@username @file <file name>"
+    // report format "#username"
+    // only message part needs to be encrypted
+
     int len = strlen(input);
     int pos = 0;
     int last = 0;
 
+    // add "@username" or "#username" to encryted message
     if(input[0] == '@') {
         while(input[last] != ' ' && input[last] != '\0') { 
             encrypted[pos++] = input[last++];
@@ -31,11 +41,14 @@ void encrypt_message(char* input, char* encrypted) {
         if(input[last] == ' ') encrypted[pos++] = input[last++];
     }
 
+    // for adding the file text to encrypt message
     if(input[last] == '@') {
         while(input[last] != ' ' && input[last] != '\0') { 
             encrypted[pos++] = input[last++];
         }
         if(input[last] == ' ') encrypted[pos++] = input[last++];
+
+        // reads the fileName from the input message 
         char* fileName = (char*)malloc(sizeof(char) * (len-last+1));
         snprintf(fileName, len - last + 1, "%s", input + last);
 
@@ -52,6 +65,7 @@ void encrypt_message(char* input, char* encrypted) {
         input = temp;
         input[last++] = ' ';
 
+        // open the file "fileName" and add the file content to the encrpt message which will be encrypted
         FILE* file = fopen(fileName, "r");
         char fileData[1024];
         fgets(fileData, sizeof(fileData), file);
@@ -60,6 +74,8 @@ void encrypt_message(char* input, char* encrypted) {
         strcat(input, fileData);
     }
     
+    // encrypt the message or fileContent
+    // takes the last character and add 3 digit ascii code in the encrypt message
     len = strlen(input);
     for(int i = len - 1; i >= last; i--) {
         pos += sprintf(encrypted + pos, "%03d", (unsigned char)input[i]);
@@ -69,15 +85,29 @@ void encrypt_message(char* input, char* encrypted) {
 }
 
 void decrypt_message(char* input, char* decrypted) {
+    // to dencrypt message received through server
+    // message format "@username[H:M] <message>"
+    // file format "@username[H:M] @file <file name> <content>"
+    // only message part needs to be dencrypted
+
     int i = 0, j = 0;
     char fileName[256];
     bool gotFile = false;
 
+    // no decryption for direct response from server
+    if(input[0] == '>'){
+        while(input[i] != '.') decrypted[j++] = input[i++];
+        decrypted[j]='\0';
+        return ;
+    }
+
+    // copy the input message till username[H:M]
     while(input[i] != ' ') decrypted[j++] = input[i++]; 
     decrypted[j++] = input[i++];
     decrypted[j++] = input[i++];
     decrypted[j++] = input[i++];
 
+    // if input message type is file, we extract file name 
     if(input[i] == '@') {
         gotFile = true;
         i += 6;
@@ -88,6 +118,7 @@ void decrypt_message(char* input, char* decrypted) {
         i += k;
     }
 
+    // decrypt the message or file content
     int len = strlen(input);
     char temp[4]; 
     int revIndex = 0, revLen = (len - i) / 3;
@@ -102,10 +133,13 @@ void decrypt_message(char* input, char* decrypted) {
     reversed[revIndex] = '\0';
 
     if(!gotFile) {
+        // if input was message type, add the message to decrypted message
         for(int k = revIndex - 1; k >= 0; k--) decrypted[j++] = reversed[k];
         decrypted[j] = '\0';
     }
     else {
+        // if input was file type, open the file <file name> and add the content
+        // inform the receiver that a file was sent by @username
         FILE* file = fopen(fileName, "a+");
         for(int k = revIndex - 1; k >= 0; k--) {
             fprintf(file, "%c", reversed[k]);
@@ -133,17 +167,21 @@ void* listen_messages(void *arg) {
         ssize_t n = read(sockfd, buffer, BUFFER_SIZE - 1);
         if(n > 0) {
             buffer[n] = '\0';
-            if(strcmp(buffer,"Kicked Out...")==0){
+             // if message received through server contains "Kicked Out"
+            if(strcmp(buffer,"Kicked Out...")==0 || strcmp(buffer,">> Kicked Out because of multiple reports...")==0){
                 printf("\nYou have been kicked out...\n");
                 fclose(chatPad);
                 _exit(EXIT_FAILURE);
             }
+
+            // decrypt the message received through server
             decrypt_message(buffer, decrypt);
             fprintf(chatPad, "%s\n", decrypt);
             fflush(chatPad);
             fflush(stdout);
         }
         else if(n == 0) {
+            // server has closed the connection
             printf("\nServer closed the connection. Exiting...\n");
             fclose(chatPad);
             exit(0);
@@ -166,27 +204,34 @@ int main(int argc, char *argv[]) {
        fprintf(stderr, "Usage: %s <hostname> <port> <name>\n", argv[0]);
        exit(1);
     }
+
+    // port number is thrid element 
     portno = atoi(argv[2]);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd < 0) error("ERROR opening socket");
     
+    // fetching host name using the ip address
     server = gethostbyname(argv[1]);
     if(server == NULL) {
         fprintf(stderr,"ERROR, no such host\n");
         exit(0);
     }
 
+    // clearing server_address and creating the headers and payload for connection
     bzero((char *) &server_address, sizeof(server_address));
     server_address.sin_family = AF_INET;
     bcopy((char *)server->h_addr_list[0], (char *)&server_address.sin_addr.s_addr, server->h_length);
     server_address.sin_port = htons(portno);
 
+    // connecting to server
     if(connect(sockfd,(struct sockaddr *)&server_address,sizeof(server_address)) < 0) error("ERROR connecting");
 
+    // assigning the name to the client
     bzero(buffer, BUFFER_SIZE);
     snprintf(buffer, BUFFER_SIZE, "%s", argv[3]);
 
+    //opening the file with client name to see the message from other clients
     fileName = (char*)malloc(strlen(argv[3]) + 5);
     if(!fileName) error("Memory allocation failed");
     snprintf(fileName, strlen(argv[3]) + 5, "%s.txt", argv[3]);
@@ -195,8 +240,10 @@ int main(int argc, char *argv[]) {
     FILE* chatPad = fopen(fileName, "a+");
     if(!chatPad) error("ERROR opening chat file");
 
+    // sending name of client to server
     if(write(sockfd, buffer, strlen(buffer)) < 0) error("ERROR sending name");
     
+    // creating the thread for receiving response through server
     pthread_t listener_thread;
     if(pthread_create(&listener_thread, NULL, listen_messages, chatPad) != 0) error("ERROR creating thread");
 
@@ -209,6 +256,7 @@ int main(int argc, char *argv[]) {
         fprintf(chatPad, "Me: %s\n", buffer);
         fflush(chatPad);
 
+        // encrypting the message of client and then sending the encrypted message to server
         encrypt_message(buffer, encrypt);
         if(write(sockfd, encrypt, strlen(encrypt)) < 0) error("ERROR writing to socket");
     }

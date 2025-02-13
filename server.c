@@ -8,9 +8,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
-#define MAX_CLIENTS 10
+#define PORT 8080
 #define BUFFER_SIZE 256
+#define MAX_CLIENTS 10
 
 typedef struct {
     int socket;
@@ -22,6 +24,12 @@ Client clients[MAX_CLIENTS];
 void error(const char *msg) {
     perror(msg);
     exit(1);
+}
+
+void getTimeStamp(char *timestamp, size_t size) {
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    strftime(timestamp, size, "[%H:%M]", t);
 }
 
 void remove_client_from_list(int socket) {
@@ -96,14 +104,18 @@ int main(int argc, char *argv[]) {
                     else {
                         FD_SET(newsockfd, &master_fds);
                         if(newsockfd > fdmax) fdmax = newsockfd;
-
+                        
+                        bzero(buffer,sizeof(buffer));
                         read(newsockfd, buffer, BUFFER_SIZE - 1);
                         buffer[strcspn(buffer, "\n")] = 0;
 
                         for(int j = 0; j < MAX_CLIENTS; j++) {
                             if(clients[j].socket == 0) {
                                 clients[j].socket = newsockfd;
+                                bzero(clients[j].name, sizeof(clients[j].name));
                                 strncpy(clients[j].name, buffer, sizeof(clients[j].name) - 1);
+                                clients[j].name[sizeof(clients[j].name) - 1] = '\0';
+
                                 printf("New client connected: %s\n", clients[j].name);
                                 break;
                             }
@@ -120,7 +132,11 @@ int main(int argc, char *argv[]) {
                     else {
                         buffer[n] = '\0';
                         char *sender_name = get_client_name(i);
-                        char message[BUFFER_SIZE + 50];
+                        char message[BUFFER_SIZE + 50+30];
+                        
+                        char timestamp[30];
+                        bzero(timestamp, sizeof(timestamp));
+                        getTimeStamp(timestamp, sizeof(timestamp));
 
                         if(strncmp(buffer, "@", 1) == 0) {
                             char recipient[50], msg[BUFFER_SIZE];
@@ -128,7 +144,8 @@ int main(int argc, char *argv[]) {
                             int recipient_socket = find_client_socket(recipient);
 
                             if(recipient_socket != -1) {
-                                snprintf(message, sizeof(message), "%s: %s", sender_name, msg);
+                                bzero(message, sizeof(message));
+                                snprintf(message, sizeof(message), "%s%s : %s", timestamp, sender_name, msg);
                                 write(recipient_socket, message, strlen(message));
                             } 
                             else {
@@ -136,7 +153,9 @@ int main(int argc, char *argv[]) {
                             }
                         } 
                         else {
-                            snprintf(message, sizeof(message), "[BROADCAST] %s: %s", sender_name, buffer);
+                            bzero(message, sizeof(message));
+                            snprintf(message, sizeof(message), "[BROADCASTING]%s%s : %s", timestamp, sender_name, buffer);
+
                             for(int j = 0; j <= fdmax; j++) {
                                 if(FD_ISSET(j, &master_fds) && j != sockfd && j != i) {
                                     write(j, message, strlen(message));
