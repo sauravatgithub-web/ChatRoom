@@ -7,8 +7,9 @@ ChatRoom in C with Socket Programming using threads and using selectAll. Message
 - [Overview](#overview)
 - [Using Threads](#using-threads)
 - [Using SelectAll](#using-selectall)
-- [Features](features)
-- [Commands Supported](commands-supported)
+- [Features](#features)
+- [Commands Supported](#commands-supported)
+- [Contributors](#contributors)
 
 ## Using Threads
 serverThread.c and clientThread.c uses threads to achieve Client Server Architecture.
