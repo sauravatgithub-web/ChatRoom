@@ -11,7 +11,7 @@ ChatRoom in C with Socket Programming using threads and using selectAll. Message
 - [Commands Supported](commands-supported)
 
 ## Using Threads
-serverThread.c and clientThread.c uses selectall() system call to achieve Client Server Architecture.
+serverThread.c and clientThread.c uses threads to achieve Client Server Architecture.
 
 Command to start serverThread.c
 
@@ -28,7 +28,7 @@ Command to start clientThread.c
   ```
 
 ## Using SelectAll
-server.c and client.c use selectall() system call to achieve Client Server Architecture.
+server.c and client.c uses selectall() system call to achieve Client Server Architecture.
 
 Command to start server.c
 
@@ -66,4 +66,9 @@ Command to start client.c
 ### Server Side
 - `REMOVE username` - to kick out client with username
 - `CLOSE` - to close the server
-  
+
+## Contributors
+- **Saurav Kumar Singh (22CS01010)**
+- **Suprit Naik (22CS01018)**
+- **Om Prakash Behera (22CS01041)**
+- **Harsh Maurya (22CS01046)**
