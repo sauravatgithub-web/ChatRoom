@@ -58,7 +58,7 @@ int find_client_socket(char* name) {                  // retrieving socket numbe
     return -1;
 }
 
-void reportCheck(int ridx) {
+bool reportCheck(int ridx) {
     int total_clients = 0, count = 0;
     for(int i = 0; i < MAX_CLIENTS; i++) {
         if (clients[i].socket != 0) total_clients++;
@@ -72,19 +72,10 @@ void reportCheck(int ridx) {
     if(total_clients <= 2) report = 3;
     else report = (total_clients)/2 + 1;
 
-    if(report > 10) report = 10;
+    if(report > 5) report = 5;
 
-    if(count >= report) {
-        printf("%s has been removed due to reports.\n", clients[ridx].name);
-
-        char message[BUFFER_SIZE];
-        snprintf(message, sizeof(message), ">> Kicked Out because of multiple reports...");
-        write(clients[ridx].socket, message, strlen(message)); 
-
-        close(clients[ridx].socket);
-        clients[ridx].socket = 0;
-        fflush(stdin);
-    }
+    if(count >= report) return true;
+    else return false;
 }
 
 int main(int argc, char *argv[]) {
@@ -206,41 +197,38 @@ int main(int argc, char *argv[]) {
                             int found = 0;
                             char reported[50];
                             sscanf(buffer, "#%s", reported);
-                            int reported_socket = find_client_socket(reported); // Retrieving reported socket
-                
-                            for(int i = 0; i < MAX_CLIENTS; i++) {
-                                if(clients[i].socket != 0 && !strcmp(clients[i].name, reported)) {
-                                    found = 1;
-                                    if(!clients[i].report[reported_socket]) {
-                                        found = 2;
-                                        clients[i].report[reported_socket] = 1;
-                                        reportCheck(i);
-                
-                                        char private_message[BUFFER_SIZE];
-                                        bzero(private_message, sizeof(private_message));
-                                        snprintf(private_message, sizeof(private_message), ">> %s HAS BEEN REPORTED.", reported);
-                
-                                        n = write(clients[reported_socket].socket, private_message, strlen(private_message));
-                                        if(n < 0) perror("ERROR writing to socket");
+                            int j = find_client_socket(reported); // Retrieving reported socket
+
+                            char private_message[BUFFER_SIZE];
+                            bzero(private_message, sizeof(private_message));
+
+                            if(j != -1) {
+                                found = 1;
+                                if(!clients[j].report[i]) {
+                                    found = 2;
+                                    clients[j].report[i] = 1;
+                                    if(reportCheck(j)) {
+                                        char message[BUFFER_SIZE];
+                                        snprintf(message, sizeof(message), ">> Kicked Out because of multiple reports...");
+                                        write(j, message, strlen(message));    // writing to client before removed
+
+                                        remove_client_from_list(j);            // removing reported client
+                                        FD_CLR(j, &master_fds);
                                     }
-                                    break;
+
+                                    // Writing to client who reported
+                                    snprintf(private_message, sizeof(private_message), ">> %s HAS BEEN REPORTED.", reported);
+                                    if(clients[i].socket != -1) write(i, private_message, strlen(private_message));
                                 }
                             }
-                            if(found == 0) {
-                                char private_message[BUFFER_SIZE];
-                                bzero(private_message, sizeof(private_message));
+                
+                            if(found == 0) { // client being reported don't exist
                                 snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", reported);
-                
-                                n = write(clients[reported_socket].socket, private_message, strlen(private_message));
-                                if(n < 0) perror("ERROR writing to socket");
+                                if(clients[i].socket != -1) write(i, private_message, strlen(private_message));
                             }
-                            if(found == 1){
-                                char private_message[BUFFER_SIZE];
-                                bzero(private_message, sizeof(private_message));
+                            if(found == 1) { // client tried to report multiple times
                                 snprintf(private_message, sizeof(private_message), ">> %s HAS ALREADY BEEN REPORTED BY YOU...", reported);
-                
-                                n = write(clients[reported_socket].socket, private_message, strlen(private_message));
-                                if(n < 0) perror("ERROR writing to socket");
+                                if(clients[i].socket != -1) write(i, private_message, strlen(private_message));
                             }
                         }
                         else {
