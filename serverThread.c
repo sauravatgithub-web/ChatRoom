@@ -168,7 +168,8 @@ void* myClientThreadFunc(void* ind){
 
                     char private_message[BUFFER_SIZE + 50 + 30];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), "%s%s : %s", timestamp, clients[index].name, message);
+                    int nz = snprintf(private_message, sizeof(private_message), "%s%s : %s", timestamp, clients[index].name, message);
+                    //nz stores the final size of the message, to remove warning
 
                     // sending the private message to target client
                     n = write(clients[i].socket, private_message, strlen(private_message));
@@ -242,7 +243,8 @@ void* myClientThreadFunc(void* ind){
             // adding the sender name, timestamp and message to message to be sent 
             char message[BUFFER_SIZE + 50 + 30];
             bzero(message, sizeof(message));
-            snprintf(message, sizeof(message), "[BROADCASTING]%s%s : %s", timestamp, clients[index].name, buffer);
+            int nz = snprintf(message, sizeof(message), "[BROADCASTING]%s%s : %s", timestamp, clients[index].name, buffer);
+            //nz stores the final size of the message 
 
             // broadcasting the message to all client except the sender
             for(int i=0; i < MAX_CLIENTS; i++) {
