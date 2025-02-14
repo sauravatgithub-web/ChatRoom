@@ -171,7 +171,9 @@ void* listen_messages(void *arg) {
         if(n > 0) {
             buffer[n] = '\0';
              // if message received through server contains "Kicked Out"
-            if(strcmp(buffer, KICKED_OUT_MESSAGE) == 0 || strcmp(buffer, REPORT_KICKED_OUT_MESSAGE) == 0){
+            if(strcmp(buffer, KICKED_OUT_MESSAGE) == 0 || 
+               strcmp(buffer, REPORT_KICKED_OUT_MESSAGE) == 0 || 
+               strcmp(buffer, ">> Kicked Out due to idleness...") == 0){
                 printf("\nYou have been kicked out...\n");
                 fclose(chatPad);
                 _exit(EXIT_FAILURE);
