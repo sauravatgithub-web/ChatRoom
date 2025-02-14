@@ -261,8 +261,9 @@ void* myClientThreadFunc(void* ind){
 
 void *server_thread(void *arg){
     // server thread to get command from server
-    // currently only for focefully removing a client
-    // message format "REMOVE username"
+    // currently only for focefully removing a client and closing the server
+    // message format "REMOVE username" for removing a client
+    // message format "CLOSE" for closing the server
 
     char buffer[BUFFER_SIZE];
     ssize_t n;
@@ -272,6 +273,11 @@ void *server_thread(void *arg){
         fgets(buffer, BUFFER_SIZE - 1, stdin);
         buffer[strcspn(buffer, "\n")] = 0;
         fflush(stdout);  
+
+        if (strcmp(buffer, "CLOSE") == 0) {
+            printf("BYE\n");
+            _exit(EXIT_FAILURE);
+        }
 
         // extracting the target username 
         char target_name[50];
