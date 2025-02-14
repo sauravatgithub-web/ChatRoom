@@ -11,12 +11,14 @@
 
 #define BUFFER_SIZE 256
 #define MAX_CLIENTS 10
+#define TIMEOUT 10
 #define EXIT_KEYWORD "EXIT"
 
 typedef struct{
     int socket;
     char name[50];
     int report[MAX_CLIENTS];
+    time_t last_active;
 } Client;
 
 Client clients[MAX_CLIENTS];
@@ -26,6 +28,25 @@ void getTimeStamp(char *timestamp, size_t size) {
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
     strftime(timestamp, size, "[%H:%M]", t);
+}
+
+void *timeout_checker(void *arg) {
+    while (1) {
+        sleep(1);
+        time_t now = time(NULL);
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (clients[i].socket != 0 && difftime(now, clients[i].last_active) > TIMEOUT) {
+                printf("Client %s Timed Out\n", clients[i].name);
+                char message[BUFFER_SIZE];
+                snprintf(message, sizeof(message), ">> Kicked Out due to idleness...");
+                write(clients[i].socket, message, strlen(message));
+
+                if(clients[i].socket!=0) close(clients[i].socket);
+                clients[i].socket = 0;
+            }
+        }
+    }
+    pthread_exit(NULL);
 }
 
 void error(char *msg){
@@ -105,6 +126,8 @@ void* myClientThreadFunc(void* ind){
     // Report array initialized for this client
     bzero(clients[index].report, sizeof(clients[index].report));
 
+    clients[index].last_active = time(NULL);
+
     // reading the request from client while it is connected
     while(clients[index].socket != 0) {
         bzero(buffer, 256);
@@ -121,6 +144,8 @@ void* myClientThreadFunc(void* ind){
             pthread_exit(NULL);
         }       
         // printf("%s : %s\n",clients[index].name, buffer);
+
+        clients[index].last_active = time(NULL);
 
         if(buffer[0] == '@') {
             // --PRIVATE MESSAGE--
@@ -236,8 +261,9 @@ void* myClientThreadFunc(void* ind){
 
 void *server_thread(void *arg){
     // server thread to get command from server
-    // currently only for focefully removing a client
-    // message format "REMOVE username"
+    // currently only for focefully removing a client and closing the server
+    // message format "REMOVE username" for removing a client
+    // message format "CLOSE" for closing the server
 
     char buffer[BUFFER_SIZE];
     ssize_t n;
@@ -247,6 +273,11 @@ void *server_thread(void *arg){
         fgets(buffer, BUFFER_SIZE - 1, stdin);
         buffer[strcspn(buffer, "\n")] = 0;
         fflush(stdout);  
+
+        if (strcmp(buffer, "CLOSE") == 0) {
+            printf("BYE\n");
+            _exit(EXIT_FAILURE);
+        }
 
         // extracting the target username 
         char target_name[50];
@@ -313,6 +344,13 @@ int main(int argc, char *argv[]) {
         close(sockfd);
     }
     pthread_detach(serverThread);
+
+    pthread_t timeoutThread;
+    if(pthread_create(&timeoutThread, NULL, timeout_checker, NULL) < 0) {
+        perror("Error in creating thread");
+        close(sockfd);
+    }
+    pthread_detach(timeoutThread);
 
     while(true) {    
         int* newsockfd = malloc(sizeof(int));
