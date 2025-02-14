@@ -1,7 +1,8 @@
 # ChatRoom in C
 
 ## OverView
-ChatRoom in C with Socket Programming using threads and using selectAll. Messages transfer are end to end encrypted. No one outside of the chat, not even server, can read or listen to them.<br> 
+ChatRoom in C with Socket Programming using threads and using selectAll. Messages transfer are end to end encrypted. No one outside of the chat, not even server, can read or listen to them.
+
 ## Table of Contents
 - [Overview](#overview)
 - [Using Threads](#using-threads)
@@ -10,7 +11,8 @@ ChatRoom in C with Socket Programming using threads and using selectAll. Message
 - [Commands Supported](commands-supported)
 
 ## Using Threads
-serverThread.c and clientThread.c uses selectall() system call to achieve Client Server Architecture.<br>
+serverThread.c and clientThread.c uses selectall() system call to achieve Client Server Architecture.
+
 Command to start serverThread.c
 
   ```bash
@@ -26,7 +28,8 @@ Command to start clientThread.c
   ```
 
 ## Using SelectAll
-server.c and client.c use selectall() system call to achieve Client Server Architecture.<br>
+server.c and client.c use selectall() system call to achieve Client Server Architecture.
+
 Command to start server.c
 
   ```bash
@@ -43,13 +46,14 @@ Command to start client.c
 
 ## Features
 - Handling Multiple Client
-- <b>Unique</b> Client can join and disconnect
+- **Unique** Client can join and disconnect
 - Private Message between two Clients
 - Broadcasting to all Alive Clients
 - File transfer between two Clients
 - Reporting a Client using username
 - Client removal power to server
-- Messages and files are <b>end-to-end encrypted</b>
+- Messages and files are **end-to-end encrypted**
+- Time-out after 60 seconds (subjected to change)
  
 ## Commands Supported 
 ### Client side 
@@ -57,6 +61,7 @@ Command to start client.c
 - `@username <message>` - enter the username of client to send the private message
 - `@username @file <fileName>` - to send file fileName
 - `#username` - to report a sus client with username
+- `EXIT` - to disconnect from the chat server
   <br>
 ### Server Side
 - `REMOVE username` - to kick out client with username
