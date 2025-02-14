@@ -278,7 +278,7 @@ void* myClientThreadFunc(void* ind){
                         
                         char private_message[BUFFER_SIZE];
                         bzero(private_message, sizeof(private_message));
-                        snprintf(private_message, sizeof(private_message), ">> %s GROUP CREATED SUCCESSFULLY", message);
+                        snprintf(private_message, sizeof(private_message), ">> %s GROUP CREATED SUCCESSFULLY...", groups[i].groupName);
 
                         n = write(clients[index].socket, private_message, strlen(private_message));
                         if(n < 0) perror("ERROR writing to socket");
@@ -299,11 +299,19 @@ void* myClientThreadFunc(void* ind){
                 // message acts as group name here
                 int group_found= 0;
                 for(int i = 0; i < MAX_GROUPS; i++) {
-                    if(groups[i].groupID != 0 && strcmp(groups[i].groupName, message)){
+                    // printf("%s  %s\n", groups[i].groupName,message);
+                    if(groups[i].groupID != 0 && strcmp(groups[i].groupName, message)==0){
                         group_found=1;
                         int z=0;
                         for(z;z<MAX_CLIENTS;z++) if(groups[i].indexNumbers[z]==-1) break;
                         groups[i].indexNumbers[z]=index;
+
+                        char private_message[BUFFER_SIZE];
+                        bzero(private_message, sizeof(private_message));
+                        snprintf(private_message, sizeof(private_message), ">> %s JOINED THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
+
+                        n = write(clients[index].socket, private_message, strlen(private_message));
+                        if(n < 0) perror("ERROR writing to socket");
                         break;
                     }
                 }
