@@ -65,4 +65,5 @@ Command to start client.c
   <br>
 ### Server Side
 - `REMOVE username` - to kick out client with username
+- `CLOSE` - to close the server
   
