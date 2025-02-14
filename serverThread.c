@@ -9,9 +9,9 @@
 #include <pthread.h>
 #include <time.h> 
 
-#define PORT 8080
 #define BUFFER_SIZE 256
 #define MAX_CLIENTS 10
+#define EXIT_KEYWORD "EXIT"
 
 typedef struct{
     int socket;
@@ -67,10 +67,10 @@ void* myClientThreadFunc(void* ind){
     free(ind);
 
     char buffer[BUFFER_SIZE];
-    bzero(buffer, 256);
+    bzero(buffer, BUFFER_SIZE);
 
     // reading the request for connection from client
-    ssize_t n = read(clients[index].socket, buffer, 255);
+    ssize_t n = read(clients[index].socket, buffer, BUFFER_SIZE - 1);
     if(n < 0) error("ERROR reading from socket");
 
     bool found = false;
@@ -111,7 +111,7 @@ void* myClientThreadFunc(void* ind){
 
         // reading the message received from client
         n = read(clients[index].socket, buffer, 255);
-        if(n <= 0) {
+        if(n <= 0 || !strcmp(buffer, EXIT_KEYWORD)) {
             // client disconnected
             // freeing the socket and exiting the pthread
             printf("%s got disconnected from the chat...\n", clients[index].name);
@@ -168,10 +168,10 @@ void* myClientThreadFunc(void* ind){
             char reported[50];
             sscanf(buffer, "#%s", reported);
 
-            for (int i = 0; i < MAX_CLIENTS; i++) {
-                if (clients[i].socket != 0 && strcmp(clients[i].name, reported) == 0) {
+            for(int i = 0; i < MAX_CLIENTS; i++) {
+                if(clients[i].socket != 0 && !strcmp(clients[i].name, reported)) {
                     found = 1;
-                    if (!clients[i].report[index]) {
+                    if(!clients[i].report[index]) {
                         found = 2;
                         clients[i].report[index] = 1;
                         reportCheck(i);
@@ -186,7 +186,7 @@ void* myClientThreadFunc(void* ind){
                     break;
                 }
             }
-            if(found==0) {
+            if(found == 0) {
                 char private_message[BUFFER_SIZE];
                 bzero(private_message, sizeof(private_message));
                 snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", reported);
@@ -194,7 +194,7 @@ void* myClientThreadFunc(void* ind){
                 n = write(clients[index].socket, private_message, strlen(private_message));
                 if(n < 0) perror("ERROR writing to socket");
             }
-            if(found==1){
+            if(found == 1){
                 char private_message[BUFFER_SIZE];
                 bzero(private_message, sizeof(private_message));
                 snprintf(private_message, sizeof(private_message), ">> %s HAS ALREADY BEEN REPORTED BY YOU...", reported);
@@ -256,8 +256,8 @@ void *server_thread(void *arg){
 
         // serching the client using username and kicking the client out
         bool found = false;
-        for (int i = 0; i < MAX_CLIENTS; i++) {
-            if(clients[i].socket != 0 && !strcmp(clients[i].name,target_name)) {
+        for(int i = 0; i < MAX_CLIENTS; i++) {
+            if(clients[i].socket != 0 && !strcmp(clients[i].name, target_name)) {
                 char message[BUFFER_SIZE];
                 snprintf(message, sizeof(message), ">> Kicked Out...");
                 write(clients[i].socket, message, strlen(message)); 
@@ -270,7 +270,7 @@ void *server_thread(void *arg){
             }
         }
         if(!found) {
-            printf("%s NOT FOUND IN THE CHAT...\n",target_name);
+            printf("%s NOT FOUND IN THE CHAT...\n", target_name);
             fflush(stdin);
         }     
     }
@@ -284,17 +284,23 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in serv_addr, cli_addr;
     ssize_t n;
 
-    if(argc < 2) portno = atoi(PORT);
-    else portno = atoi(argv[1]);
+    if(argc < 2) {
+        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
+        exit(1);
+    }
+    portno = atoi(argv[1]); // Assigning port
     
+    // STEP 1: socket()
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd < 0) error("ERROR opening socket");
     
+    // prepare the sockaddr_in structure
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
     
+    // STEP 3: bind() and listen()
     if(bind(sockfd, (struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) error("ERROR on binding");
     listen(sockfd, 5);
     clilen = sizeof(cli_addr);
@@ -342,7 +348,7 @@ int main(int argc, char *argv[]) {
             }
         }
         if(client_avail == 0) {
-            // denyiny the join request due to socket unavailability
+            // denying the join request due to socket unavailability
             n = write(*newsockfd, "MAXIMUM NO. OF CLIENTS REACHED !!!", 34);
             if(n < 0) error("ERROR writing to socket");
             close(*newsockfd);

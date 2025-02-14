@@ -10,6 +10,7 @@
 #include <pthread.h>
 
 #define BUFFER_SIZE 512
+#define EXIT_KEYWORD "EXIT"
 #define KICKED_OUT_MESSAGE ">> Kicked Out..."
 #define REPORT_KICKED_OUT_MESSAGE ">> Kicked Out because of multiple reports..."
 #define USERNAME_MESSAGE ">> USERNAME HAS ALREADY BEEN TAKEN..."
@@ -35,9 +36,14 @@ void encrypt_message(char* input, char* encrypted) {
     int len = strlen(input);
     int pos = 0;
     int last = 0;
+    if(!strcmp(input, EXIT_KEYWORD)) {
+        while(input[pos] != '\0') encrypted[last++] = input[pos++];
+        encrypted[last]='\0';
+        return ;
+    }
 
     // add "@username" or "#username" to encryted message
-    if(input[0] == '@') {
+    if(input[0] == '@' || input[0] == '#') {
         while(input[last] != ' ' && input[last] != '\0') { 
             encrypted[pos++] = input[last++];
         }

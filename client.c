@@ -10,6 +10,7 @@
 #include <pthread.h>
 
 #define BUFFER_SIZE 256
+#define EXIT_KEYWORD "EXIT"
 
 void error(const char* msg) {
     perror(msg);
@@ -32,6 +33,11 @@ void encrypt_message(char* input, char* encrypted) {
     int len = strlen(input);
     int pos = 0;
     int last = 0;
+    if(!strcmp(input, EXIT_KEYWORD)) {
+        while(input[pos] != '\0') encrypted[last++] = input[pos++];
+        encrypted[last]='\0';
+        return ;
+    }
 
     // add "@username" or "#username" to encryted message
     if(input[0] == '@' || input[0] == '#') {

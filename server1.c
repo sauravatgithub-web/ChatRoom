@@ -42,9 +42,9 @@ void *timeout_checker(void *arg) {
                 snprintf(message, sizeof(message), ">> Kicked Out due to idleness...");
                 write(clients[i].socket, message, strlen(message));
 
-                close(clients[i].socket);
+                if(clients[i].socket != 0) close(clients[i].socket);
                 clients[i].socket = 0;
-                fflush(stdin);
+                
             }
         }
     }
