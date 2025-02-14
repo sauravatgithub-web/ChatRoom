@@ -10,6 +10,9 @@
 #include <pthread.h>
 
 #define BUFFER_SIZE 512
+#define KICKED_OUT_MESSAGE ">> Kicked Out..."
+#define REPORT_KICKED_OUT_MESSAGE ">> Kicked Out because of multiple reports..."
+#define USERNAME_MESSAGE ">> USERNAME HAS ALREADY BEEN TAKEN..."
 
 void error(char *msg){
     perror(msg);
@@ -168,8 +171,13 @@ void* listen_messages(void *arg) {
         if(n > 0) {
             buffer[n] = '\0';
              // if message received through server contains "Kicked Out"
-            if(strcmp(buffer,"Kicked Out...")==0 || strcmp(buffer,">> Kicked Out because of multiple reports...")==0){
+            if(strcmp(buffer, KICKED_OUT_MESSAGE) == 0 || strcmp(buffer, REPORT_KICKED_OUT_MESSAGE) == 0){
                 printf("\nYou have been kicked out...\n");
+                fclose(chatPad);
+                _exit(EXIT_FAILURE);
+            }
+            if(strcmp(buffer, USERNAME_MESSAGE) == 0){
+                printf("\n%s\n", USERNAME_MESSAGE);
                 fclose(chatPad);
                 _exit(EXIT_FAILURE);
             }

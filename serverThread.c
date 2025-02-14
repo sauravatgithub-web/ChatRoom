@@ -72,6 +72,30 @@ void* myClientThreadFunc(void* ind){
     // reading the request for connection from client
     ssize_t n = read(clients[index].socket, buffer, 255);
     if(n < 0) error("ERROR reading from socket");
+
+    bool found = false;
+    // looping through all client and matching the name
+    for(int i = 0; i < MAX_CLIENTS; i++) {
+        if(clients[i].socket != 0 && !strcmp(clients[i].name, buffer)) {
+            found = true;
+            break;
+        }
+    }
+    if(found) {
+        // if target client is not found
+        char private_message[BUFFER_SIZE + 50 + 30];
+        bzero(private_message, sizeof(private_message));
+        snprintf(private_message, sizeof(private_message), ">> USERNAME HAS ALREADY BEEN TAKEN...");
+
+        n = write(clients[index].socket, private_message, strlen(private_message));
+        if(n < 0) perror("ERROR writing to socket");
+
+        close(clients[index].socket);
+        clients[index].socket = 0;
+        bzero(clients[index].name, sizeof(clients[index].name));
+        pthread_exit(NULL);
+    }
+
     printf("%s connected to chat...\n", buffer);
 
     // fetching the name of connected client 
@@ -232,7 +256,7 @@ void *server_thread(void *arg){
 
         // serching the client using username and kicking the client out
         bool found = false;
-        for (int i=0; i < MAX_CLIENTS; i++) {
+        for (int i = 0; i < MAX_CLIENTS; i++) {
             if(clients[i].socket != 0 && !strcmp(clients[i].name,target_name)) {
                 char message[BUFFER_SIZE];
                 snprintf(message, sizeof(message), ">> Kicked Out...");
@@ -297,7 +321,7 @@ int main(int argc, char *argv[]) {
 
         // assinging the free socket to the incomming client
         int client_avail = 0;
-        for(int i=0; i < MAX_CLIENTS; i++) {
+        for(int i = 0; i < MAX_CLIENTS; i++) {
             if(clients[i].socket == 0){
                 client_avail = 1;
                 clients[i].socket = *newsockfd;
