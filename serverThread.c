@@ -389,7 +389,7 @@ int main(int argc, char *argv[]) {
         }
         if(client_avail == 0) {
             // denying the join request due to socket unavailability
-            n = write(*newsockfd, "MAXIMUM NO. OF CLIENTS REACHED !!!", 34);
+            n = write(*newsockfd, ">> MAXIMUM NO. OF CLIENTS REACHED !!!", 34);
             if(n < 0) error("ERROR writing to socket");
             close(*newsockfd);
             free(newsockfd);

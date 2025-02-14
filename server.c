@@ -37,9 +37,9 @@ void remove_client_from_list(int socket) { // removing a client based on socket 
     for(int i = 0; i < MAX_CLIENTS; i++) {
         if(clients[i].socket == socket) {
             printf("Client %s (socket %d) disconnected.\n", clients[i].name, socket);
+            close(socket);                                          // closing the client socket
             clients[i].socket = 0;                                  // clearing the target socket
             memset(clients[i].name, 0, sizeof(clients[i].name));    // deleting name
-            close(socket);                                          // closing the client socket
             break;
         }
     }
@@ -49,6 +49,7 @@ char* get_client_name(int socket) {                   // retrieving client based
     for(int i = 0; i < MAX_CLIENTS; i++) {
         if(clients[i].socket == socket) return clients[i].name;
     }
+    return NULL;
 }
 
 int find_client_socket(char* name) {                  // retrieving socket number for the client
@@ -84,11 +85,12 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // DECLARING VARIABLES
-    int sockfd, newsockfd, portno, fdmax;
-    socklen_t clilen;
+    // DECLARING VARIABLES - 
+    int sockfd, newsockfd, portno, fdmax;       // fdmax stores the highest file descriptor
+    socklen_t clilen;                           // size of client address structure cli_addr
     struct sockaddr_in serv_addr, cli_addr;
-    fd_set master_fds, read_fds;
+    fd_set master_fds, read_fds;                // master_fds is the set of all active sockets including server
+                                                // read_fds is the set of all sockets which are ready for reading
     char buffer[BUFFER_SIZE];
 
     portno = atoi(argv[1]); // ASSIGNING PORT
@@ -109,8 +111,10 @@ int main(int argc, char *argv[]) {
     // Setting up master file descriptor set
     FD_ZERO(&master_fds);
     FD_ZERO(&read_fds);
-    FD_SET(sockfd, &master_fds);
+    FD_SET(sockfd, &master_fds);       // This will allow sockfd to listen from clients
+    FD_SET(STDIN_FILENO, &master_fds); // Adds standard input to master_fd
     fdmax = sockfd;
+    if(STDIN_FILENO > fdmax) fdmax = STDIN_FILENO;
 
     printf("Server listening on port %d...\n", portno);
 
@@ -122,20 +126,20 @@ int main(int argc, char *argv[]) {
         // Looping through the descriptor set to check activity
         for(int i = 0; i <= fdmax; i++) {
             if(FD_ISSET(i, &read_fds)) {
-
-                // New connection request
-                if(i == sockfd) {           
+                
+                // If a new request comes, it goes to sockfd (listening socket) and hence sockfd becomes active and is in read_fds
+                if(i == sockfd) {                                    // NEW CONNECTION REQUEST
                     clilen = sizeof(cli_addr);
                     newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
                     if(newsockfd == -1) {
                         perror("ERROR on accept");
                     } 
                     else {
-                        FD_SET(newsockfd, &master_fds);
-                        if(newsockfd > fdmax) fdmax = newsockfd;
+                        FD_SET(newsockfd, &master_fds);              // Added in the master_fds set
+                        if(newsockfd > fdmax) fdmax = newsockfd;     // Updating fdmax
                         
                         // Reading client's name
-                        bzero(buffer,sizeof(buffer));
+                        bzero(buffer, sizeof(buffer));
                         read(newsockfd, buffer, BUFFER_SIZE - 1);
                         buffer[strcspn(buffer, "\n")] = 0;
 
@@ -153,13 +157,54 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 } 
+                else if(i == STDIN_FILENO) {                          // READING FROM TERMINAL
+                    memset(buffer, 0, BUFFER_SIZE);
+                    fgets(buffer, BUFFER_SIZE - 1, stdin);
+                    buffer[strcspn(buffer, "\n")] = 0; 
+                    fflush(stdout);  
+
+                    if(!strcasecmp(buffer, "CLOSE")) {
+                        printf("BYE\n");
+                        for(int i = 0; i <= fdmax; i++) {
+                            if(FD_ISSET(i, &master_fds)) close(i);    // Closing all open sockets
+                        }
+                        exit(EXIT_SUCCESS);
+                    }
+
+                    if(!strncmp(buffer, "REMOVE", 6)) {
+                        // extracting the target username 
+                        char target_name[50];
+                        bzero(target_name, sizeof(target_name));
+                        sscanf(buffer, "REMOVE %s", target_name);
+
+                        // searching the client using username and kicking the client out
+                        bool found = false;
+                        for(int i = 0; i < MAX_CLIENTS; i++) {
+                            if(clients[i].socket != 0 && !strcmp(clients[i].name, target_name)) {
+                                found = true;
+                                char message[BUFFER_SIZE];
+                                snprintf(message, sizeof(message), ">> Kicked Out...");
+                                write(clients[i].socket, message, strnlen(message, sizeof(message))); 
+
+                                FD_CLR(clients[i].socket, &master_fds);
+                                remove_client_from_list(clients[i].socket);
+                                break;
+                            }
+                        }
+                        if(!found) {
+                            printf("%s NOT FOUND IN THE CHAT...\n", target_name);
+                            fflush(stdin);
+                        }     
+                    }
+                }
                 else {
                     // Reading message from a connected list
                     memset(buffer, 0, BUFFER_SIZE);
-                    ssize_t n = read(i, buffer, BUFFER_SIZE - 1);     // Reading from client buffer
+                    ssize_t n = recv(i, buffer, BUFFER_SIZE - 1, 0);     // Reading from client buffer
                     if(n <= 0) {
                         remove_client_from_list(i);
                         FD_CLR(i, &master_fds);
+                        if(i == fdmax) fdmax--;  // Update fdmax if necessary
                     } 
                     else {
                         buffer[n] = '\0';
@@ -170,9 +215,10 @@ int main(int argc, char *argv[]) {
                         bzero(timestamp, sizeof(timestamp));
                         getTimeStamp(timestamp, sizeof(timestamp));   // Retrieving message time
 
-                        if(!strcmp(buffer, EXIT_KEYWORD)) { // HANDLING Client request to exit
+                        if(!strcmp(buffer, EXIT_KEYWORD)) {           // Handling client request to exit
                             remove_client_from_list(i);
                             FD_CLR(i, &master_fds);
+                            continue;
                         }
 
                         // PRIVATE OR GROUP MESSAGING
@@ -186,49 +232,49 @@ int main(int argc, char *argv[]) {
                             if(recipient_socket != -1) {
                                 bzero(message, sizeof(message));
                                 snprintf(message, sizeof(message), "%s%s : %s", timestamp, sender_name, msg);
-                                write(recipient_socket, message, strlen(message));  // Writing to the client
+                                send(recipient_socket, message, strnlen(message, sizeof(message)), 0);  // Writing to the client
                             } 
-                            else { // User not in chat
-                                write(i, "User not found.\n", 16);
+                            else { // User not found
+                                send(i, "User not found.\n", 16, 0);
                             }
                         } 
+                        // REPORTING
                         else if(strncmp(buffer, "#", 1) == 0) {
-                            // REPORTING
                             int found = 0;
                             char reported[50];
                             sscanf(buffer, "#%s", reported);
-                            int j = find_client_socket(reported); // Retrieving reported socket
+                            int reported_socket = find_client_socket(reported); // Retrieving reported socket
 
                             char private_message[BUFFER_SIZE];
                             bzero(private_message, sizeof(private_message));
 
-                            if(j != -1) {
+                            if(reported_socket != -1) {
                                 found = 1;
-                                if(!clients[j].report[i]) {
+                                if(!clients[reported_socket].report[i]) {
                                     found = 2;
-                                    clients[j].report[i] = 1;
-                                    if(reportCheck(j)) {
+                                    clients[reported_socket].report[i] = 1;
+                                    if(reportCheck(reported_socket)) {         // checking if reported enough times
                                         char message[BUFFER_SIZE];
                                         snprintf(message, sizeof(message), ">> Kicked Out because of multiple reports...");
-                                        write(j, message, strlen(message));    // writing to client before removed
+                                        send(reported_socket, message, strnlen(message, sizeof(message)), 0);    // writing to client before removal
 
-                                        remove_client_from_list(j);            // removing reported client
-                                        FD_CLR(j, &master_fds);
+                                        remove_client_from_list(reported_socket);            // removing reported client
+                                        FD_CLR(reported_socket, &master_fds);
                                     }
 
                                     // Writing to client who reported
                                     snprintf(private_message, sizeof(private_message), ">> %s HAS BEEN REPORTED.", reported);
-                                    if(clients[i].socket != -1) write(i, private_message, strlen(private_message));
+                                    if(clients[i].socket != -1) send(i, private_message, strnlen(private_message, sizeof(private_message)), 0);
                                 }
                             }
                 
-                            if(found == 0) { // client being reported don't exist
+                            if(found == 0) { // client being reported doesn't exist
                                 snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", reported);
-                                if(clients[i].socket != -1) write(i, private_message, strlen(private_message));
+                                if(clients[i].socket != -1) send(i, private_message, strnlen(private_message, sizeof(private_message)), 0);
                             }
                             if(found == 1) { // client tried to report multiple times
                                 snprintf(private_message, sizeof(private_message), ">> %s HAS ALREADY BEEN REPORTED BY YOU...", reported);
-                                if(clients[i].socket != -1) write(i, private_message, strlen(private_message));
+                                if(clients[i].socket != -1) send(i, private_message, strnlen(private_message, sizeof(private_message)), 0);
                             }
                         }
                         else {
@@ -239,13 +285,13 @@ int main(int argc, char *argv[]) {
 
                             for(int j = 0; j <= fdmax; j++) {
                                 if(FD_ISSET(j, &master_fds) && j != sockfd && j != i) {
-                                    write(j, message, strlen(message));   // Writing to all alive users
+                                    write(j, message, strnlen(message, sizeof(message)));   // Writing to all alive users
                                 }
                             }
                         }
                     }
                 }
-            }
+            }     
         }
     }
 
