@@ -282,7 +282,7 @@ void* myClientThreadFunc(void* ind){
                         strncpy(groups[i].groupName, message, sizeof(groups[i].groupName) - 1);
                         groups[i].groupName[sizeof(groups[i].groupName)-1] = '\0';
 
-                        memset(groups[i].indexNumbers, -1, sizeof(groups[index].indexNumbers));
+                        memset(groups[i].indexNumbers, -1, sizeof(groups[i].indexNumbers));
                         groups[i].indexNumbers[0]=index;
                         
                         char private_message[BUFFER_SIZE];
@@ -341,10 +341,10 @@ void* myClientThreadFunc(void* ind){
                 for(int i=0;i<MAX_GROUPS;i++){
                     if(groups[i].groupID!=0 && strcmp(groups[i].groupName,message)==0){
                         found_in_group=1;
-                        for(int i=0;i<MAX_CLIENTS;i++){
+                        for(int j=0;j<MAX_CLIENTS;j++){
                             found_in_group=2;
-                            if(groups[i].indexNumbers[i]==index){
-                                groups[i].indexNumbers[i]=-1;
+                            if(groups[i].indexNumbers[j]==index){
+                                groups[i].indexNumbers[j]=-1;
 
                                 char private_message[BUFFER_SIZE];
                                 bzero(private_message, sizeof(private_message));
@@ -352,7 +352,6 @@ void* myClientThreadFunc(void* ind){
 
                                 n = write(clients[index].socket, private_message, strlen(private_message));
                                 if(n < 0) perror("ERROR writing to socket");
-                                break;
                                 break;
                             }
                         }
