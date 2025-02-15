@@ -55,15 +55,29 @@ Command to start client.c
 - Client removal power to server
 - Messages and files are **end-to-end encrypted**
 - Time-out after 60 seconds (subjected to change)
+- Group chats for multiple select clients supported
+- Features of group chats:
+  - Create a group
+  - Join a group
+  - Leave a group
+- Groups with no members automatically gets deleted
  
 ## Commands Supported 
-### Client side 
+### Client side
 - `<message>` - for direct broadcasting the message to all client
 - `@username <message>` - enter the username of client to send the private message
 - `@username @file <fileName>` - to send file fileName
 - `#username` - to report a sus client with username
 - `EXIT` - to disconnect from the chat server
-  <br>
+
+#### Group Chat
+- `$CREATE <groupName>` - to create a group
+- `$JOIN <groupName>` - to join a group
+- `$LEAVE <groupName>` - to leave a group
+- `$groupName <message>` - to send message in the group
+
+These commands are direct requests to server, hence they are not encrypted.
+
 ### Server Side
 - `REMOVE username` - to kick out client with username
 - `CLOSE` - to close the server
