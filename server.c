@@ -11,6 +11,7 @@
 #include <time.h>
 
 #define TIMEOUT 10
+#define MAX_GROUPS 10
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 256
 #define EXIT_KEYWORD "EXIT"
@@ -22,7 +23,14 @@ typedef struct {
     time_t last_active;
 } Client;
 
+typedef struct group{
+    int groupID;
+    char groupName[50];
+    int indexNumbers[MAX_CLIENTS];
+} Group;
+
 Client clients[MAX_CLIENTS];
+Group groups[MAX_GROUPS];
 
 void error(const char *msg) { // error function
     perror(msg);
@@ -100,6 +108,31 @@ void remove_idle_client(fd_set* master_fds) {
 
             FD_CLR(clients[i].socket, master_fds);
             remove_client_from_list(clients[i].socket);
+        }
+    }
+
+    for(int i = 0; i < MAX_GROUPS; i++) {
+        if(groups[i].groupID) {
+            int available = 0;
+            for(int j = 0; j < MAX_CLIENTS; j++) {
+                if(groups[i].indexNumbers[j] != -1) {
+                    available = 1;
+                    break;
+                }
+            }
+
+            if(!available) {
+                memset(groups[i].groupName, 0, sizeof(groups[i].groupName));
+                groups[i].groupID = 0;
+            }
+        }
+    }
+}
+
+void remove_client_from_every_group(int client_index) {
+    for(int i = 0; i < MAX_GROUPS; i++) {
+        for(int j = 0; j < MAX_CLIENTS; j++) {
+            if(groups[i].indexNumbers[j] == client_index) groups[i].indexNumbers[j] = -1;
         }
     }
 }
@@ -262,7 +295,7 @@ int main(int argc, char *argv[]) {
                         // PRIVATE OR GROUP MESSAGING
                         // private message format "@username <message>"
                         // group message format "@groupname <message>"
-                        if(strncmp(buffer, "@", 1) == 0) {
+                        if(strncmp(buffer, "@", 1) == 0) {                        // PRIVATE MESSAGING
                             char recipient[50], msg[BUFFER_SIZE];
                             sscanf(buffer, "@%s %[^\n]", recipient, msg);
                             int recipient_socket = find_client_socket(recipient); // Retrieving recipient socket
@@ -315,10 +348,147 @@ int main(int argc, char *argv[]) {
                                 if(clients[i].socket != -1) send(i, private_message, strnlen(private_message, sizeof(private_message)), 0);
                             }
                         }
+                        else if(strncmp(buffer, "$", 1) == 0) {                       // GROUP MESSAGING
+                            char group_name[50], message[BUFFER_SIZE];
+                            sscanf(buffer, "$%s %[^\n]", group_name, message);
+
+                            if(!strcasecmp(group_name, "CREATE")) {
+                                int group_avail = 0;
+                                for(int i = 0; i < MAX_GROUPS; i++) {
+                                    if(!groups[i].groupID) {
+                                        group_avail = 1;
+                                        groups[i].groupID = i + 1;
+                                        
+                                        strncpy(groups[i].groupName, message, sizeof(groups[i].groupName) - 1);
+                                        groups[i].groupName[sizeof(groups[i].groupName)-1] = '\0';
+
+                                        memset(groups[i].indexNumbers, -1, sizeof(groups[i].indexNumbers));
+                                        groups[i].indexNumbers[0] = index;
+                                        
+                                        char private_message[BUFFER_SIZE];
+                                        memset(private_message, 0, sizeof(private_message));
+                                        snprintf(private_message, sizeof(private_message), ">> %s GROUP CREATED SUCCESSFULLY...", groups[i].groupName);
+
+                                        n = send(clients[index].socket, private_message, strlen(private_message), 0);
+                                        if(n < 0) perror("ERROR writing to socket");
+
+                                        break;
+                                    }
+                                }
+                                if(!group_avail) {
+                                    char private_message[BUFFER_SIZE];
+                                    memset(private_message, 0, sizeof(private_message));
+                                    snprintf(private_message, sizeof(private_message), ">> MAXIMUM NO OF GROUPS REACHED...", message);
+
+                                    n = send(clients[index].socket, private_message, strlen(private_message), 0);
+                                    if(n < 0) perror("ERROR writing to socket");
+                                }
+                            }
+                            else if(!strcasecmp(group_name, "JOIN")) {
+                                int group_found = 0;
+                                for(int i = 0; i < MAX_GROUPS; i++) {
+                                    if(groups[i].groupID && !strcmp(groups[i].groupName, message)) {
+                                        group_found = 1;
+                                        int reqd_index = 0;
+                                        while(reqd_index < MAX_CLIENTS) {
+                                            if(groups[i].indexNumbers[reqd_index] == -1) break;
+                                            reqd_index++;
+                                        }
+                                        groups[i].indexNumbers[reqd_index] = index;
+                
+                                        char private_message[BUFFER_SIZE];
+                                        memset(private_message, 0, sizeof(private_message));
+                                        snprintf(private_message, sizeof(private_message), ">> %s JOINED THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
+                
+                                        n = send(clients[index].socket, private_message, strlen(private_message), 0);
+                                        if(n < 0) perror("ERROR writing to socket");
+                                        break;
+                                    }
+                                }
+                                if(!group_found) {
+                                    char private_message[BUFFER_SIZE];
+                                    bzero(private_message, sizeof(private_message));
+                                    snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", message);
+                
+                                    n = send(clients[index].socket, private_message, 0, strlen(private_message));
+                                    if(n < 0) perror("ERROR writing to socket");
+                                }
+                            }
+                            else if(!strcasecmp(group_name, "LEAVE")) {
+                                int found_in_group = 0;
+                                for(int i = 0; i < MAX_GROUPS; i++) {
+                                    if(!groups[i].groupID && !strcmp(groups[i].groupName,message)) {
+                                        found_in_group = 1;
+                                        for(int j=0; j < MAX_CLIENTS; j++) {
+                                            found_in_group = 2;
+                                            if(groups[i].indexNumbers[j] == index) {
+                                                groups[i].indexNumbers[j] = -1;
+                
+                                                char private_message[BUFFER_SIZE];
+                                                memset(private_message, 0, sizeof(private_message));
+                                                snprintf(private_message, sizeof(private_message), ">> %s LEFT THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
+                
+                                                n = send(clients[index].socket, private_message, strlen(private_message), 0);
+                                                if(n < 0) perror("ERROR writing to socket");
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                if(found_in_group != 2) {
+                                    char private_message[BUFFER_SIZE];
+                                    memset(private_message, 0, sizeof(private_message));
+
+                                    if(found_in_group == 0) snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", message);
+                                    else snprintf(private_message, sizeof(private_message), ">> YOU ARE NOT IN %s GROUP...", message);
+
+                                    n = send(clients[index].socket, private_message, strlen(private_message), 0);
+                                    if(n < 0) perror("ERROR writing to socket");
+                                }
+                            }
+                            else {
+                                int group_found = 0;
+                                for(int i=0; i < MAX_GROUPS; i++) {
+                                    if(!groups[i].groupID && !strcmp(groups[i].groupName,group_name)) {
+                                        group_found = 1;
+                                        for(int j = 0; j < MAX_CLIENTS; j++) {
+                                            if(groups[i].indexNumbers[j] == index) {
+                                                group_found = 2;
+                                            }
+                                        }
+                                        if(group_found == 1) break;
+
+                                        for(int j = 0; j < MAX_CLIENTS; j++) {
+                                            if(groups[i].indexNumbers[j] != -1) {
+                                                char private_message[BUFFER_SIZE + 50 + 30];
+                                                memset(private_message, 0, sizeof(private_message));
+                                                snprintf(private_message, sizeof(private_message), "[%s]%s : %s", group_name, clients[index].name, message);
+
+                                                if(clients[groups[i].indexNumbers[j]].socket != 0) {
+                                                    n = send(clients[groups[i].indexNumbers[j]].socket, private_message, strlen(private_message), 0);
+                                                    if(n < 0) perror("ERROR writing to socket");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if(group_found != 2) {
+                                    char private_message[BUFFER_SIZE];
+                                    memset(private_message, 0, sizeof(private_message));
+
+                                    if(group_found == 0) snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", group_name);
+                                    else snprintf(private_message, sizeof(private_message), ">> YOU ARE NOT IN %s GROUP, FIRST JOIN THE GROUP %s...", group_name,group_name);
+
+                                    n = send(clients[index].socket, private_message, strlen(private_message), 0);
+                                    if(n < 0) perror("ERROR writing to socket");
+                                }
+                            }
+                        }
                         else {
                             // BROADCASTING TO ALL ALIVE USERS
                             // format "message"
-                            bzero(message, sizeof(message));
+
+                            memset(message, 0, sizeof(message));
                             snprintf(message, sizeof(message), "[BROADCASTING]%s%s : %s", timestamp, sender_name, buffer);
 
                             for(int j = 0; j <= fdmax; j++) {
