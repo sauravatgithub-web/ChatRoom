@@ -416,12 +416,12 @@ int main(int argc, char *argv[]) {
                                 }
                                 if(!group_avail) { // maximum group limit by server reached
                                     memset(private_message, 0, sizeof(private_message));
-                                    snprintf(private_message, sizeof(private_message), ">> MAXIMUM NO OF GROUPS REACHED...", message);
+                                    snprintf(private_message, sizeof(private_message), ">> MAXIMUM NO OF GROUPS REACHED...");
                                     send(clients[index].socket, private_message, strlen(private_message), 0);
                                 }
                                 else if(group_avail == 2) { // group name already in use
                                     memset(private_message, 0, sizeof(private_message));
-                                    snprintf(private_message, sizeof(private_message), ">> %s GROUP ALREADY EXISTS, JOIN %s GROUP...", message, message);
+                                    snprintf(private_message, sizeof(private_message), ">> %.100s GROUP ALREADY EXISTS, JOIN %.100s GROUP...", message, message);
                                     send(clients[index].socket, private_message, strlen(private_message), 0);
                                 }
                             }
