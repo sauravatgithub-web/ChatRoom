@@ -93,9 +93,9 @@ Command to start client.c
 - response from server to client should be of format `>> <server_message>...`
 
 ## Siteimages
-![siteimage](Gallery/Screenshot%20(10).png)
-![siteimage](Gallery/Screenshot%20from%202025-02-15%2017-00-32.png)
-![siteimage](Gallery/Screenshot%20from%202025-02-15%2017-02-20.png)
+![siteimage](Gallery/Screenshot%20(10).png)<br><br>
+![siteimage](Gallery/Screenshot%20from%202025-02-15%2017-00-32.png)<br><br>
+![siteimage](Gallery/Screenshot%20from%202025-02-15%2017-02-20.png)<br>
 
 ## Github Link
 [GITHUB LINK OF THE PROJECT](https://github.com/pntu007/ChatRoom/tree/main)
