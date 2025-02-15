@@ -311,6 +311,15 @@ void* myClientThreadFunc(void* ind){
                     // printf("%s  %s\n", groups[i].groupName,message);
                     if(groups[i].groupID != 0 && strcmp(groups[i].groupName, message)==0){
                         group_found=1;
+
+                        for(int j=0;j<MAX_CLIENTS;j++){
+                            if(groups[i].indexNumbers[j]==index){
+                                group_found=2;
+                                break;
+                            }
+                        }
+                        if(group_found==2) break;
+
                         int z=0;
                         for(z;z<MAX_CLIENTS;z++) if(groups[i].indexNumbers[z]==-1) break;
                         groups[i].indexNumbers[z]=index;
@@ -330,6 +339,16 @@ void* myClientThreadFunc(void* ind){
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
                     snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", message);
+
+                    n = write(clients[index].socket, private_message, strlen(private_message));
+                    if(n < 0) perror("ERROR writing to socket");
+                }
+                if(group_found == 2){
+                    // already in the group
+                    // message acts as group name here
+                    char private_message[BUFFER_SIZE];
+                    bzero(private_message, sizeof(private_message));
+                    snprintf(private_message, sizeof(private_message), ">> YOU ARE ALREADY IN %s GROUP ...", message);
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -479,30 +498,65 @@ void *server_thread(void *arg){
         }
 
         // extracting the target username 
-        char target_name[50];
-        bzero(target_name, sizeof(target_name));
-        sscanf(buffer, "REMOVE %s", target_name);
-        printf("%s\n", target_name);  
+        // char target_name[50];
+        // bzero(target_name, sizeof(target_name));
+        // sscanf(buffer, "REMOVE %s", target_name);
+        // printf("%s\n", target_name);  
 
-        // serching the client using username and kicking the client out
-        bool found = false;
-        for(int i = 0; i < MAX_CLIENTS; i++) {
-            if(clients[i].socket != 0 && !strcmp(clients[i].name, target_name)) {
-                char message[BUFFER_SIZE];
-                snprintf(message, sizeof(message), ">> Kicked Out...");
-                write(clients[i].socket, message, strlen(message)); 
+        char target[50], name[50];
+        sscanf(buffer, "%s %[^\n]", target, name);
+        printf("%s %s\n", target, name);
 
-                close(clients[i].socket);
-                clients[i].socket = 0;
-                found = true;
-                fflush(stdin);
-                break;
+        if(strcmp(target, "REMOVE") == 0) {
+            // serching the client using username and kicking the client out
+            bool found = false;
+            for(int i = 0; i < MAX_CLIENTS; i++) {
+                if(clients[i].socket != 0 && !strcmp(clients[i].name, name)) {
+                    char message[BUFFER_SIZE];
+                    snprintf(message, sizeof(message), ">> Kicked Out...");
+                    write(clients[i].socket, message, strlen(message)); 
+
+                    close(clients[i].socket);
+                    clients[i].socket = 0;
+                    found = true;
+                    fflush(stdin);
+                    break;
+                }
             }
+            if(!found) {
+                printf("%s NOT FOUND IN THE CHAT...\n", name);
+                fflush(stdin);
+            }     
         }
-        if(!found) {
-            printf("%s NOT FOUND IN THE CHAT...\n", target_name);
-            fflush(stdin);
-        }     
+
+        if(strcmp(target, "DELETE") == 0) {
+            // serching the client using username and kicking the client out
+            bool found = false;
+            for(int i = 0; i < MAX_GROUPS; i++) {
+                if(groups[i].groupID != 0 && !strcmp(groups[i].groupName, name)) {
+                    found = true;
+                    for(int j=0;j<MAX_CLIENTS;j++){
+                        if(groups[i].indexNumbers[j]!=-1){
+                            if(clients[groups[i].indexNumbers[j]].socket != 0) {
+                                char message[BUFFER_SIZE];
+                                snprintf(message, sizeof(message), ">> GROUP DELETED BY THE SERVER...");
+                                write(clients[groups[i].indexNumbers[j]].socket, message, strlen(message)); 
+                            }
+                            groups[i].indexNumbers[j]=-1;
+                        }
+                    }
+                    bzero(groups[i].groupName, sizeof(groups[i].groupName));
+                    groups[i].groupID=0;
+                    printf("%s GROUP DELETED SUCCESSFULLY...\n", name);
+                    fflush(stdin);
+                    break;
+                }
+            }
+            if(!found) {
+                printf("%s NOT FOUND IN THE CHAT...\n", name);
+                fflush(stdin);
+            }     
+        }
     }
     pthread_exit(NULL);
 }
