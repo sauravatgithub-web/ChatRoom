@@ -11,7 +11,10 @@ ChatRoom in C with Socket Programming using threads and using select system call
 - [Features](#features)
 - [Commands Supported](#commands-supported)
 - [Developer Protocols followed](#developer-protocols-followed)
+- [SiteImages](#siteimages)
+- [Github Link](#github-link)
 - [Contributors](#contributors)
+  
 
 ## Using Threads
 serverThread.c and clientThread.c uses threads to achieve Client Server Architecture.
@@ -88,6 +91,14 @@ Command to start client.c
 
 ## Developer Protocols followed
 - response from server to client should be of format `>> <server_message>...`
+
+## Siteimages
+![siteimage](Gallery/Screenshot%20(10).png)
+![siteimage](Gallery/Screenshot%20from%202025-02-15%2017-00-32.png)
+![siteimage](Gallery/Screenshot%20from%202025-02-15%2017-02-20.png)
+
+## Github Link
+[GITHUB LINK OF THE PROJECT](https://github.com/pntu007/ChatRoom/tree/main)
 
 ## Contributors
 - **Saurav Kumar Singh (22CS01010)**
