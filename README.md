@@ -25,8 +25,8 @@ Command to start serverThread.c
 Command to start clientThread.c
 
   ```bash
-    gcc clientThread.c -o clientThread
-    ./clientThread <IP_Address> <port_no> <username>
+  gcc clientThread.c -o clientThread
+  ./clientThread <IP_Address> <port_no> <username>
   ```
 
 ## Using Select
@@ -42,8 +42,8 @@ Command to start server.c
 Command to start client.c
 
   ```bash
-    gcc client.c -o client
-    ./client <IP_Address> <port_no> <username>
+  gcc client.c -o client
+  ./client <IP_Address> <port_no> <username>
   ```
 
 ## Features
@@ -72,19 +72,21 @@ Command to start client.c
 - `#<username>` - to report a sus client with username
 - `EXIT` - to disconnect from the chat server
 
-#### Group Chat
-- `$CREATE <groupName>` - to create a group
-- `$JOIN <groupName>` - to join a group
-- `$LEAVE <groupName>` - to leave a group
-- `$<groupName> <message>` - to send message in the group
-- `$<groupName> @file <fileName>` - to send file fileName in the group
+  #### Group Chat
+    - `$CREATE <groupName>` - to create a group
+    - `$JOIN <groupName>` - to join a group
+    - `$LEAVE <groupName>` - to leave a group
+    - `$<groupName> <message>` - to send message in the group
+    - `$<groupName> @file <fileName>` - to send file fileName in the group
 
-These commands are direct requests to server, hence they are not encrypted.
 
 ### Server Side
 - `REMOVE <username>` - to kick out client with username
 - `DELETE <groupName>` - to delete the group with groupName 
 - `CLOSE` - to close the server
+
+## Developer Protocols followed
+- response from server to client should be of format `>> <server_message>...`
 
 ## Contributors
 - **Saurav Kumar Singh (22CS01010)**
