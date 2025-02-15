@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 
+#define TIMEOUT 10
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 256
 #define EXIT_KEYWORD "EXIT"
@@ -18,6 +19,7 @@ typedef struct {
     int socket;
     char name[50];
     int report[MAX_CLIENTS];
+    time_t last_active;
 } Client;
 
 Client clients[MAX_CLIENTS];
@@ -52,6 +54,13 @@ char* get_client_name(int socket) {                   // retrieving client based
     return NULL;
 }
 
+int get_client(char* name) {
+    for(int i = 0; i < MAX_CLIENTS; i++) {
+        if(!strcmp(clients[i].name, name)) return i;
+    }
+    return -1;
+}
+
 int find_client_socket(char* name) {                  // retrieving socket number for the client
     for(int i = 0; i < MAX_CLIENTS; i++) {
         if(clients[i].socket != 0 && strcmp(clients[i].name, name) == 0) return clients[i].socket;
@@ -77,6 +86,22 @@ bool reportCheck(int ridx) {
 
     if(count >= report) return true;
     else return false;
+}
+
+void remove_idle_client(fd_set* master_fds) {
+    time_t now = time(NULL);
+
+    for(int i = 0; i < MAX_CLIENTS; i++) {
+        if(clients[i].socket != 0 && difftime(now, clients[i].last_active) > TIMEOUT) {
+            printf("Client %s Timed Out\n", clients[i].name);
+            char message[BUFFER_SIZE];
+            snprintf(message, sizeof(message), ">> Kicked Out due to idleness...");
+            send(clients[i].socket, message, strlen(message), 0);
+
+            FD_CLR(clients[i].socket, master_fds);
+            remove_client_from_list(clients[i].socket);
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -119,9 +144,15 @@ int main(int argc, char *argv[]) {
     printf("Server listening on port %d...\n", portno);
 
     while(true) {
+        remove_idle_client(&master_fds);
+
+        struct timeval timeout;
+        timeout.tv_sec = 1;  // 1-second timeout
+        timeout.tv_usec = 0;
+
         read_fds = master_fds;   // Copy master set for select
-        if(select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) error("ERROR in select");
-        // select function checks for activity across all connections
+        if(select(fdmax + 1, &read_fds, NULL, NULL, &timeout) == -1) error("ERROR in select");
+        // select function checks for activity across all connections and remove sockets with no activity
 
         // Looping through the descriptor set to check activity
         for(int i = 0; i <= fdmax; i++) {
@@ -150,6 +181,7 @@ int main(int argc, char *argv[]) {
                                 bzero(clients[j].name, sizeof(clients[j].name));
                                 strncpy(clients[j].name, buffer, sizeof(clients[j].name) - 1);
                                 clients[j].name[sizeof(clients[j].name) - 1] = '\0';
+                                clients[j].last_active = time(NULL);
 
                                 printf("New client connected: %s\n", clients[j].name);
                                 break;
@@ -158,13 +190,16 @@ int main(int argc, char *argv[]) {
                     }
                 } 
                 else if(i == STDIN_FILENO) {                          // READING FROM TERMINAL
+                    // message format "REMOVE username" for removing a client
+                    // message format "CLOSE" for closing the server
+
                     memset(buffer, 0, BUFFER_SIZE);
                     fgets(buffer, BUFFER_SIZE - 1, stdin);
                     buffer[strcspn(buffer, "\n")] = 0; 
                     fflush(stdout);  
 
                     if(!strcasecmp(buffer, "CLOSE")) {
-                        printf("BYE\n");
+                        printf("~~BYE\n");
                         for(int i = 0; i <= fdmax; i++) {
                             if(FD_ISSET(i, &master_fds)) close(i);    // Closing all open sockets
                         }
@@ -220,6 +255,9 @@ int main(int argc, char *argv[]) {
                             FD_CLR(i, &master_fds);
                             continue;
                         }
+
+                        int index = get_client(sender_name);
+                        clients[index].last_active = time(NULL);
 
                         // PRIVATE OR GROUP MESSAGING
                         // private message format "@username <message>"
@@ -285,7 +323,7 @@ int main(int argc, char *argv[]) {
 
                             for(int j = 0; j <= fdmax; j++) {
                                 if(FD_ISSET(j, &master_fds) && j != sockfd && j != i) {
-                                    write(j, message, strnlen(message, sizeof(message)));   // Writing to all alive users
+                                    send(j, message, strnlen(message, sizeof(message)), 0);   // Writing to all alive users
                                 }
                             }
                         }
