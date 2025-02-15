@@ -1,7 +1,7 @@
 # ChatRoom in C
 
 ## OverView
-ChatRoom in C with Socket Programming using threads and using select system call. Private messages, group chats and file tranfer are supported. Messages and files transfer are end to end encrypted. No one outside of the chat, not even server, can read or listen to them.
+ChatRoom in C with Socket Programming using threads and using select system call. Both Threads and Select system call allows to handle multiple clients in socket programming simultaneosly. Private messages, group chats and file tranfer are supported. Messages and files transfer are end to end encrypted. No one outside of the chat, not even server, can read or listen to them. Check the [Features](#features) section for more.
 
 
 ## Table of Contents
@@ -10,6 +10,7 @@ ChatRoom in C with Socket Programming using threads and using select system call
 - [Using Select](#using-select)
 - [Features](#features)
 - [Commands Supported](#commands-supported)
+- [Developer Protocols followed](#developer-protocols-followed)
 - [Contributors](#contributors)
 
 ## Using Threads
