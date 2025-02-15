@@ -283,7 +283,7 @@ void* myClientThreadFunc(void* ind){
                 for(int i = 0; i<MAX_GROUPS; i++){
                     if(group_avail==2) break;
                     if(groups[i].groupID==0){
-                        // availabe socket for goup found
+                        // availabe socket for group found
                         group_avail=1;
                         groups[i].groupID=i+1;
                         
