@@ -75,6 +75,14 @@ void *timeout_checker(void *arg) {
     pthread_exit(NULL);
 }
 
+void REMOVE_CLIENT_FROM_EVERY_GROUP(int client_index){
+    for(int i=0;i<MAX_GROUPS;i++){
+        for(int j=0;j<MAX_CLIENTS;j++){
+            if(groups[i].indexNumbers[j]==client_index) groups[i].indexNumbers[j]=-1;
+        }
+    }
+}
+
 void error(char *msg){
     perror(msg);
     exit(1);
@@ -164,6 +172,7 @@ void* myClientThreadFunc(void* ind){
             // client disconnected
             // freeing the socket and exiting the pthread
             printf("%s got disconnected from the chat...\n", clients[index].name);
+            REMOVE_CLIENT_FROM_EVERY_GROUP(index);      //removing the client from every group when disconnected...
             if(clients[index].socket != 0) close(clients[index].socket);
             clients[index].socket = 0;
             bzero(clients[index].name, sizeof(clients[index].name));
@@ -273,7 +282,7 @@ void* myClientThreadFunc(void* ind){
                         strncpy(groups[i].groupName, message, sizeof(groups[i].groupName) - 1);
                         groups[i].groupName[sizeof(groups[i].groupName)-1] = '\0';
 
-                        memset(groups[index].indexNumbers, -1, sizeof(groups[index].indexNumbers));
+                        memset(groups[i].indexNumbers, -1, sizeof(groups[index].indexNumbers));
                         groups[i].indexNumbers[0]=index;
                         
                         char private_message[BUFFER_SIZE];
@@ -336,6 +345,14 @@ void* myClientThreadFunc(void* ind){
                             found_in_group=2;
                             if(groups[i].indexNumbers[i]==index){
                                 groups[i].indexNumbers[i]=-1;
+
+                                char private_message[BUFFER_SIZE];
+                                bzero(private_message, sizeof(private_message));
+                                snprintf(private_message, sizeof(private_message), ">> %s LEFT THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
+
+                                n = write(clients[index].socket, private_message, strlen(private_message));
+                                if(n < 0) perror("ERROR writing to socket");
+                                break;
                                 break;
                             }
                         }
@@ -365,6 +382,12 @@ void* myClientThreadFunc(void* ind){
                     if(groups[i].groupID!=0 && strcmp(groups[i].groupName,group_name)==0){
                         group_found=1;
                         for(int j=0;j<MAX_CLIENTS;j++){
+                            if(groups[i].indexNumbers[j]==index){
+                                group_found=2;
+                            }
+                        }
+                        if(group_found==1) break;
+                        for(int j=0;j<MAX_CLIENTS;j++){
                             if(groups[i].indexNumbers[j]!=-1){
                                 char private_message[BUFFER_SIZE + 50 + 30];
                                 bzero(private_message, sizeof(private_message));
@@ -388,10 +411,18 @@ void* myClientThreadFunc(void* ind){
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
                 }
+                if(group_found==1){
+                    char private_message[BUFFER_SIZE];
+                    bzero(private_message, sizeof(private_message));
+                    snprintf(private_message, sizeof(private_message), ">> YOU ARE NOT IN %s GROUP, FIRST JOIN THE GROUP %s...", group_name,group_name);
+
+                    n = write(clients[index].socket, private_message, strlen(private_message));
+                    if(n < 0) perror("ERROR writing to socket");
+                }
             }
 
-            printf("%s",group_name);
-            printf("%s",message);
+            // printf("%s",group_name);
+            // printf("%s",message);
 
         }
         //GROUP CHAT FUNCTIONALITY ENDS HERE
