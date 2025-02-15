@@ -31,9 +31,9 @@ void encrypt_message(char* input, char* encrypted) {
     // message format "@username <message>"
     // file format "@username @file <file name>"
     // report format "#username"
+    // group format "$CREATE <groupName>" , "$JOIN <groupName>" "$LEAVE <groupName>" no encryption needed , as it is request to server
+    // group format "$groupName <message>" 
     // only message part needs to be encrypted
-
-    // "$groupName <message>"
 
     int len = strlen(input);
     int pos = 0;
@@ -48,11 +48,13 @@ void encrypt_message(char* input, char* encrypted) {
     if(input[0] == '$'){
         char query[256], message[256];
         sscanf(input,"$%s %s",query,message);
+        // no encryption for request to server
         if( (strcmp(query,"CREATE") == 0) || (strcmp(query,"JOIN") == 0) || (strcmp(query,"LEAVE") == 0)  ){
             while(input[pos] != '\0') encrypted[last++] = input[pos++];
             encrypted[last]='\0';
             return ;
         }
+        // add "$groupName" to encryted messagage
         else{
             while(input[pos] != ' ') encrypted[last++] = input[pos++];
             encrypted[last++]=input[pos++];
@@ -182,6 +184,7 @@ void* listen_messages(void *arg) {
     char* buffer = (char*)malloc(BUFFER_SIZE);
     char* decrypt = (char*)malloc(BUFFER_SIZE * 3);
 
+    // opening the Chat file
     FILE* chatPad = (FILE*)arg;
     if(!chatPad) {
         perror("Error opening chat file in thread");
@@ -193,7 +196,7 @@ void* listen_messages(void *arg) {
         ssize_t n = read(sockfd, buffer, BUFFER_SIZE - 1);
         if(n > 0) {
             buffer[n] = '\0';
-             // if message received through server contains "Kicked Out"
+             // if message received from server contains "Kicked Out"
             if(strcmp(buffer, KICKED_OUT_MESSAGE) == 0 || 
                strcmp(buffer, REPORT_KICKED_OUT_MESSAGE) == 0 || 
                strcmp(buffer, ">> Kicked Out due to idleness...") == 0){
@@ -220,14 +223,12 @@ void* listen_messages(void *arg) {
             exit(0);
         }
         else error("ERROR reading from socket"); 
-            
     }
     return NULL;
 }
 
 int main(int argc, char *argv[]) {
-    int portno;
-    ssize_t n;
+    int portno; ssize_t n;
     struct sockaddr_in server_address;
     struct hostent *server;
     char* buffer = (char*)malloc(BUFFER_SIZE);

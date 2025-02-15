@@ -79,7 +79,7 @@ Command to start client.c
 These commands are direct requests to server, hence they are not encrypted.
 
 ### Server Side
-- `REMOVE username` - to kick out client with username
+- `REMOVE <username>` - to kick out client with username
 - `CLOSE` - to close the server
 
 ## Contributors

@@ -46,7 +46,7 @@ void *timeout_checker(void *arg) {
             if (clients[i].socket != 0 && difftime(now, clients[i].last_active) > TIMEOUT) {
                 printf("Client %s Timed Out\n", clients[i].name);
                 char message[BUFFER_SIZE];
-                snprintf(message, sizeof(message), ">> Kicked Out due to idleness...");
+                int nz = snprintf(message, sizeof(message), ">> Kicked Out due to idleness...");
                 write(clients[i].socket, message, strlen(message));
 
                 if(clients[i].socket!=0) close(clients[i].socket);
@@ -108,7 +108,7 @@ void reportCheck(int ridx) {
         printf("%s has been removed due to reports.\n", clients[ridx].name);
 
         char message[BUFFER_SIZE];
-        snprintf(message, sizeof(message), ">> Kicked Out because of multiple reports...");
+        int nz = snprintf(message, sizeof(message), ">> Kicked Out because of multiple reports...");
         write(clients[ridx].socket, message, strlen(message)); 
 
         close(clients[ridx].socket);
@@ -140,7 +140,7 @@ void* myClientThreadFunc(void* ind){
         // if target client is not found
         char private_message[BUFFER_SIZE + 50 + 30];
         bzero(private_message, sizeof(private_message));
-        snprintf(private_message, sizeof(private_message), ">> USERNAME HAS ALREADY BEEN TAKEN...");
+        int nz = snprintf(private_message, sizeof(private_message), ">> USERNAME HAS ALREADY BEEN TAKEN...");
 
         n = write(clients[index].socket, private_message, strlen(private_message));
         if(n < 0) perror("ERROR writing to socket");
@@ -217,7 +217,7 @@ void* myClientThreadFunc(void* ind){
                 // if target client is not found
                 char private_message[BUFFER_SIZE + 50 + 30];
                 bzero(private_message, sizeof(private_message));
-                snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", target_name);
+                int nz = snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", target_name);
 
                 n = write(clients[index].socket, private_message, strlen(private_message));
                 if(n < 0) perror("ERROR writing to socket");
@@ -239,7 +239,7 @@ void* myClientThreadFunc(void* ind){
 
                         char private_message[BUFFER_SIZE];
                         bzero(private_message, sizeof(private_message));
-                        snprintf(private_message, sizeof(private_message), ">> %s HAS BEEN REPORTED.", reported);
+                        int nz = snprintf(private_message, sizeof(private_message), ">> %s HAS BEEN REPORTED.", reported);
 
                         n = write(clients[index].socket, private_message, strlen(private_message));
                         if(n < 0) perror("ERROR writing to socket");
@@ -250,7 +250,7 @@ void* myClientThreadFunc(void* ind){
             if(found == 0) {
                 char private_message[BUFFER_SIZE];
                 bzero(private_message, sizeof(private_message));
-                snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", reported);
+                int nz = snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", reported);
 
                 n = write(clients[index].socket, private_message, strlen(private_message));
                 if(n < 0) perror("ERROR writing to socket");
@@ -258,7 +258,7 @@ void* myClientThreadFunc(void* ind){
             if(found == 1){
                 char private_message[BUFFER_SIZE];
                 bzero(private_message, sizeof(private_message));
-                snprintf(private_message, sizeof(private_message), ">> %s HAS ALREADY BEEN REPORTED BY YOU...", reported);
+                int nz = snprintf(private_message, sizeof(private_message), ">> %s HAS ALREADY BEEN REPORTED BY YOU...", reported);
 
                 n = write(clients[index].socket, private_message, strlen(private_message));
                 if(n < 0) perror("ERROR writing to socket");
@@ -287,7 +287,7 @@ void* myClientThreadFunc(void* ind){
                         
                         char private_message[BUFFER_SIZE];
                         bzero(private_message, sizeof(private_message));
-                        snprintf(private_message, sizeof(private_message), ">> %s GROUP CREATED SUCCESSFULLY...", groups[i].groupName);
+                        int nz = snprintf(private_message, sizeof(private_message), ">> %s GROUP CREATED SUCCESSFULLY...", groups[i].groupName);
 
                         n = write(clients[index].socket, private_message, strlen(private_message));
                         if(n < 0) perror("ERROR writing to socket");
@@ -298,7 +298,7 @@ void* myClientThreadFunc(void* ind){
                 if(group_avail==0){
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), ">> MAXIMUM NO OF GROUPS REACHED...", message);
+                    int nz = snprintf(private_message, sizeof(private_message), ">> MAXIMUM NO OF GROUPS REACHED...");
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -326,7 +326,7 @@ void* myClientThreadFunc(void* ind){
 
                         char private_message[BUFFER_SIZE];
                         bzero(private_message, sizeof(private_message));
-                        snprintf(private_message, sizeof(private_message), ">> %s JOINED THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
+                        int nz = snprintf(private_message, sizeof(private_message), ">> %s JOINED THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
 
                         n = write(clients[index].socket, private_message, strlen(private_message));
                         if(n < 0) perror("ERROR writing to socket");
@@ -338,7 +338,7 @@ void* myClientThreadFunc(void* ind){
                     // message acts as group name here
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", message);
+                    int nz = snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", message);
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -348,7 +348,7 @@ void* myClientThreadFunc(void* ind){
                     // message acts as group name here
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), ">> YOU ARE ALREADY IN %s GROUP ...", message);
+                    int nz = snprintf(private_message, sizeof(private_message), ">> YOU ARE ALREADY IN %s GROUP ...",message);
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -367,7 +367,7 @@ void* myClientThreadFunc(void* ind){
 
                                 char private_message[BUFFER_SIZE];
                                 bzero(private_message, sizeof(private_message));
-                                snprintf(private_message, sizeof(private_message), ">> %s LEFT THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
+                                int nz = snprintf(private_message, sizeof(private_message), ">> %s LEFT THE GROUP %s SUCCESSFULLY...", clients[index].name, groups[i].groupName);
 
                                 n = write(clients[index].socket, private_message, strlen(private_message));
                                 if(n < 0) perror("ERROR writing to socket");
@@ -379,7 +379,7 @@ void* myClientThreadFunc(void* ind){
                 if(found_in_group==0){
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", message);
+                    int nz = snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", message);
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -387,7 +387,7 @@ void* myClientThreadFunc(void* ind){
                 else if(found_in_group==1){
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), ">> YOU ARE NOT IN %s GROUP...", message);
+                    int nz = snprintf(private_message, sizeof(private_message), ">> YOU ARE NOT IN %s GROUP...", message);
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -409,7 +409,7 @@ void* myClientThreadFunc(void* ind){
                             if(groups[i].indexNumbers[j]!=-1){
                                 char private_message[BUFFER_SIZE + 50 + 30];
                                 bzero(private_message, sizeof(private_message));
-                                snprintf(private_message, sizeof(private_message), "[%s]%s : %s", group_name, clients[index].name, message);
+                                int nz = snprintf(private_message, sizeof(private_message), "[%s]%s : %s", group_name, clients[index].name, message);
 
                                 if(clients[groups[i].indexNumbers[j]].socket != 0) {
                                     n = write(clients[groups[i].indexNumbers[j]].socket, private_message, strlen(private_message));
@@ -424,7 +424,7 @@ void* myClientThreadFunc(void* ind){
                 if(group_found==0){
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", group_name);
+                    int nz = snprintf(private_message, sizeof(private_message), ">> %s NOT FOUND...", group_name);
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -432,7 +432,7 @@ void* myClientThreadFunc(void* ind){
                 if(group_found==1){
                     char private_message[BUFFER_SIZE];
                     bzero(private_message, sizeof(private_message));
-                    snprintf(private_message, sizeof(private_message), ">> YOU ARE NOT IN %s GROUP, FIRST JOIN THE GROUP %s...", group_name,group_name);
+                    int nz = snprintf(private_message, sizeof(private_message), ">> YOU ARE NOT IN %s GROUP, FIRST JOIN THE GROUP %s...", group_name,group_name);
 
                     n = write(clients[index].socket, private_message, strlen(private_message));
                     if(n < 0) perror("ERROR writing to socket");
@@ -513,7 +513,7 @@ void *server_thread(void *arg){
             for(int i = 0; i < MAX_CLIENTS; i++) {
                 if(clients[i].socket != 0 && !strcmp(clients[i].name, name)) {
                     char message[BUFFER_SIZE];
-                    snprintf(message, sizeof(message), ">> Kicked Out...");
+                    int nz = snprintf(message, sizeof(message), ">> Kicked Out...");
                     write(clients[i].socket, message, strlen(message)); 
 
                     close(clients[i].socket);
@@ -539,7 +539,7 @@ void *server_thread(void *arg){
                         if(groups[i].indexNumbers[j]!=-1){
                             if(clients[groups[i].indexNumbers[j]].socket != 0) {
                                 char message[BUFFER_SIZE];
-                                snprintf(message, sizeof(message), ">> GROUP DELETED BY THE SERVER...");
+                                int nz = snprintf(message, sizeof(message), ">> GROUP DELETED BY THE SERVER...");
                                 write(clients[groups[i].indexNumbers[j]].socket, message, strlen(message)); 
                             }
                             groups[i].indexNumbers[j]=-1;

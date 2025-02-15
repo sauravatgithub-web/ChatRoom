@@ -9,8 +9,11 @@
 #include <netdb.h>
 #include <pthread.h>
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 512
 #define EXIT_KEYWORD "EXIT"
+#define KICKED_OUT_MESSAGE ">> Kicked Out..."
+#define REPORT_KICKED_OUT_MESSAGE ">> Kicked Out because of multiple reports..."
+#define USERNAME_MESSAGE ">> USERNAME HAS ALREADY BEEN TAKEN..."
 
 void error(const char* msg) {
     perror(msg);
@@ -28,6 +31,8 @@ void encrypt_message(char* input, char* encrypted) {
     // message format "@username <message>"
     // file format "@username @file <file name>"
     // report format "#username"
+    // group format "$CREATE <groupName>" , "$JOIN <groupName>" "$LEAVE <groupName>" no encryption needed , as it is request to server
+    // group format "$groupName <message>" 
     // only message part needs to be encrypted
 
     int len = strlen(input);
@@ -37,6 +42,23 @@ void encrypt_message(char* input, char* encrypted) {
         while(input[pos] != '\0') encrypted[last++] = input[pos++];
         encrypted[last]='\0';
         return ;
+    }
+
+    // for group
+    if(input[0] == '$'){
+        char query[256], message[256];
+        sscanf(input,"$%s %s",query,message);
+        // no encryption for request to server
+        if( (strcmp(query,"CREATE") == 0) || (strcmp(query,"JOIN") == 0) || (strcmp(query,"LEAVE") == 0)  ){
+            while(input[pos] != '\0') encrypted[last++] = input[pos++];
+            encrypted[last]='\0';
+            return ;
+        }
+        // add "$groupName" to encryted messagage
+        else{
+            while(input[pos] != ' ') encrypted[last++] = input[pos++];
+            encrypted[last++]=input[pos++];
+        }
     }
 
     // add "@username" or "#username" to encryted message
@@ -158,7 +180,6 @@ void decrypt_message(char* input, char* decrypted) {
     }
 }
 
-
 void* listen_for_messages(void* arg) {
     char* buffer = (char*)malloc(BUFFER_SIZE);
     char* decrypt = (char*)malloc(BUFFER_SIZE * 3);
@@ -175,9 +196,16 @@ void* listen_for_messages(void* arg) {
         ssize_t n = read(socket_fd, buffer, BUFFER_SIZE - 1);
         if(n > 0) {
             buffer[n] = '\0';
-            // if message received through server contains "Kicked Out"
-            if(!strcmp(buffer, ">> Kicked Out...") || !strcmp(buffer, ">> Kicked Out because of multiple reports...")) {
+            // if message received from server contains "Kicked Out"
+            if(strcmp(buffer, KICKED_OUT_MESSAGE) == 0 || 
+               strcmp(buffer, REPORT_KICKED_OUT_MESSAGE) == 0 || 
+               strcmp(buffer, ">> Kicked Out due to idleness...") == 0){
                 printf("\nYou have been kicked out...\n");
+                fclose(chatPad);
+                _exit(EXIT_FAILURE);
+            }
+            if(strcmp(buffer, USERNAME_MESSAGE) == 0){
+                printf("\n%s\n", USERNAME_MESSAGE);
                 fclose(chatPad);
                 _exit(EXIT_FAILURE);
             }
