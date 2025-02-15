@@ -1,12 +1,13 @@
 # ChatRoom in C
 
 ## OverView
-ChatRoom in C with Socket Programming using threads and using selectAll. Messages transfer are end to end encrypted. No one outside of the chat, not even server, can read or listen to them.
+ChatRoom in C with Socket Programming using threads and using select system call. Private messages, group chats and file tranfer are supported. Messages and files transfer are end to end encrypted. No one outside of the chat, not even server, can read or listen to them.
+
 
 ## Table of Contents
 - [Overview](#overview)
 - [Using Threads](#using-threads)
-- [Using SelectAll](#using-selectall)
+- [Using Select](#using-select)
 - [Features](#features)
 - [Commands Supported](#commands-supported)
 - [Contributors](#contributors)
@@ -28,8 +29,8 @@ Command to start clientThread.c
     ./clientThread <IP_Address> <port_no> <username>
   ```
 
-## Using SelectAll
-server.c and client.c uses selectall() system call to achieve Client Server Architecture.
+## Using Select
+server.c and client.c uses select() system call to achieve Client Server Architecture.
 
 Command to start server.c
 
@@ -55,31 +56,34 @@ Command to start client.c
 - Client removal power to server
 - Messages and files are **end-to-end encrypted**
 - Time-out after 60 seconds (subjected to change)
-- Group chats for multiple select clients supported
+- Group chats supported
 - Features of group chats:
   - Create a group
   - Join a group
   - Leave a group
 - Groups with no members automatically gets deleted
+- Group removal power to server
  
 ## Commands Supported 
 ### Client side
 - `<message>` - for direct broadcasting the message to all client
-- `@username <message>` - enter the username of client to send the private message
-- `@username @file <fileName>` - to send file fileName
-- `#username` - to report a sus client with username
+- `@<username> <message>` - enter the username of client to send the private message
+- `@<username> @file <fileName>` - to send file fileName
+- `#<username>` - to report a sus client with username
 - `EXIT` - to disconnect from the chat server
 
 #### Group Chat
 - `$CREATE <groupName>` - to create a group
 - `$JOIN <groupName>` - to join a group
 - `$LEAVE <groupName>` - to leave a group
-- `$groupName <message>` - to send message in the group
+- `$<groupName> <message>` - to send message in the group
+- `$<groupName> @file <fileName>` - to send file fileName in the group
 
 These commands are direct requests to server, hence they are not encrypted.
 
 ### Server Side
 - `REMOVE <username>` - to kick out client with username
+- `DELETE <groupName>` - to delete the group with groupName 
 - `CLOSE` - to close the server
 
 ## Contributors
