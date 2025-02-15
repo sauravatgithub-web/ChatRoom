@@ -33,13 +33,30 @@ void encrypt_message(char* input, char* encrypted) {
     // report format "#username"
     // only message part needs to be encrypted
 
+    // "$groupName <message>"
+
     int len = strlen(input);
     int pos = 0;
     int last = 0;
-    if(!strcmp(input, EXIT_KEYWORD)) {
+    if(!strcmp(input, EXIT_KEYWORD) ) {
         while(input[pos] != '\0') encrypted[last++] = input[pos++];
         encrypted[last]='\0';
         return ;
+    }
+
+    // for group
+    if(input[0] == '$'){
+        char query[256], message[256];
+        sscanf(input,"$%s %s",query,message);
+        if( (strcmp(query,"CREATE") == 0) || (strcmp(query,"JOIN") == 0) || (strcmp(query,"LEAVE") == 0)  ){
+            while(input[pos] != '\0') encrypted[last++] = input[pos++];
+            encrypted[last]='\0';
+            return ;
+        }
+        else{
+            while(input[pos] != ' ') encrypted[last++] = input[pos++];
+            encrypted[last++]=input[pos++];
+        }
     }
 
     // add "@username" or "#username" to encryted message
