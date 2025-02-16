@@ -32,6 +32,8 @@ Command to start clientThread.c
   gcc clientThread.c -o clientThread
   ./clientThread <IP_Address> <port_no> <username>
   ```
+ - A new file named **username.txt** will be created
+ - All the messages received from clients and server will be shown in the file  
 
 ## Using Select
 server.c and client.c uses select() system call to achieve Client Server Architecture.
@@ -49,6 +51,8 @@ Command to start client.c
   gcc client.c -o client
   ./client <IP_Address> <port_no> <username>
   ```
+ - A new file named **username.txt** will be created
+ - All the messages received from clients and server will be shown in the file  
 
 ## Features
 - Handling Multiple Client
