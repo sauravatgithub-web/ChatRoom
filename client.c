@@ -121,6 +121,7 @@ void decrypt_message(char* input, char* decrypted) {
     int i = 0, j = 0;
     char fileName[256];
     bool gotFile = false;
+    memset(decrypted, 0, BUFFER_SIZE * 3);
 
     // no decryption for direct response from server
     if(input[0] == '>'){
@@ -169,13 +170,15 @@ void decrypt_message(char* input, char* decrypted) {
         // if input was file type, open the file <file name> and add the content
         // inform the receiver that a file was sent by @username
         FILE* file = fopen(fileName, "a+");
+        fprintf(file, "\n");
         for(int k = revIndex - 1; k >= 0; k--) {
             fprintf(file, "%c", reversed[k]);
         }
         fclose(file);
 
         char message[512];
-        snprintf(message, sizeof(message), "I sent you a file named %s", fileName);
+        memset(message, 0, sizeof(message));
+        snprintf(message, sizeof(message), "I sent you a file named %s\n", fileName);
         strcat(decrypted, message);
     }
 }
@@ -193,6 +196,7 @@ void* listen_for_messages(void* arg) {
 
     while(true) {
         memset(buffer, 0, BUFFER_SIZE);
+        memset(decrypt, 0, BUFFER_SIZE * 3);
         ssize_t n = read(socket_fd, buffer, BUFFER_SIZE - 1);
         if(n > 0) {
             buffer[n] = '\0';
@@ -291,6 +295,7 @@ int main(int argc, char* argv[]) {
         fflush(chatPad); 
 
         // encrypting the message of client and then sending the encrypted message to server
+        memset(encrypt, 0, sizeof(encrypt));
         encrypt_message(buffer, encrypt);
         if(write(socket_fd, encrypt, strlen(encrypt)) < 0) error("ERROR writing to socket");
     }
