@@ -189,6 +189,27 @@ void* myClientThreadFunc(void* ind){
             // extracting the target name and message from buffer
             char target_name[50], message[BUFFER_SIZE];
             sscanf(buffer, "@%s %[^\n]", target_name, message);
+            
+            if(strcmp(target_name,"SHOWALL")==0){
+                // SHOWALL command to show all the clients connected to the server
+                char private_message[BUFFER_SIZE];
+                bzero(private_message, sizeof(private_message));
+                int nz = snprintf(private_message, sizeof(private_message), ">> CLIENTS CONNECTED TO THE SERVER...");
+
+                n = write(clients[index].socket, private_message, strlen(private_message));
+                if(n < 0) perror("ERROR writing to socket");
+
+                for(int i=0; i < MAX_CLIENTS; i++) {
+                    if(clients[i].socket != 0) {
+                        bzero(private_message, sizeof(private_message));
+                        int nz = snprintf(private_message, sizeof(private_message), ">>   --> %s...", clients[i].name);
+
+                        n = write(clients[index].socket, private_message, strlen(private_message));
+                        if(n < 0) perror("ERROR writing to socket");
+                    }
+                }
+                continue;
+            }
 
             // getting the current time 
             char timestamp[30];
@@ -271,6 +292,26 @@ void* myClientThreadFunc(void* ind){
             char group_name[50], message[BUFFER_SIZE];
             sscanf(buffer, "$%s %[^\n]", group_name, message);
 
+            if(strcmp(group_name,"SHOWALL")==0){
+                // SHOWALL command to show all the groups connected to the server
+                char private_message[BUFFER_SIZE];
+                bzero(private_message, sizeof(private_message));
+                int nz = snprintf(private_message, sizeof(private_message), ">> GROUPS IN THE SERVER...");
+
+                n = write(clients[index].socket, private_message, strlen(private_message));
+                if(n < 0) perror("ERROR writing to socket");
+
+                for(int i=0; i < MAX_GROUPS; i++) {
+                    if(groups[i].groupID != 0) {
+                        bzero(private_message, sizeof(private_message));
+                        int nz = snprintf(private_message, sizeof(private_message), ">>    --> %s...", groups[i].groupName);
+
+                        n = write(clients[index].socket, private_message, strlen(private_message));
+                        if(n < 0) perror("ERROR writing to socket");
+                    }
+                }
+                continue;
+            }
             if(strcmp(group_name,"CREATE")==0){
                 // message acts as group name here
                 // create format "$CREATE <groupName>"
