@@ -113,7 +113,6 @@ void reportCheck(int ridx) {
 
         close(clients[ridx].socket);
         clients[ridx].socket = 0;
-        fflush(stdin);
     }
 }
 
@@ -190,7 +189,7 @@ void* myClientThreadFunc(void* ind){
             char target_name[50], message[BUFFER_SIZE];
             sscanf(buffer, "@%s %[^\n]", target_name, message);
             
-            if(strcmp(target_name,"SHOWALL")==0){
+            if(strcmp(target_name,"SHOW_ALL")==0){
                 // SHOWALL command to show all the clients connected to the server
                 char private_message[BUFFER_SIZE];
                 bzero(private_message, sizeof(private_message));
