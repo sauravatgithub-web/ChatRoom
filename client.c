@@ -11,6 +11,8 @@
 
 #define BUFFER_SIZE 512
 #define EXIT_KEYWORD "EXIT"
+#define SHOW_GROUPS "SHOW_ALL_GROUPS"
+#define SHOW_CLIENTS "SHOW_ALL_CLIENTS"
 #define KICKED_OUT_MESSAGE ">> Kicked Out..."
 #define REPORT_KICKED_OUT_MESSAGE ">> Kicked Out because of multiple reports..."
 #define USERNAME_MESSAGE ">> USERNAME HAS ALREADY BEEN TAKEN..."
@@ -38,7 +40,7 @@ void encrypt_message(char* input, char* encrypted) {
     int len = strlen(input);
     int pos = 0;
     int last = 0;
-    if(!strcmp(input, EXIT_KEYWORD)) {
+    if(!strcmp(input, EXIT_KEYWORD) || !strcmp(input, SHOW_CLIENTS) || !strcmp(input, SHOW_GROUPS)) {
         while(input[pos] != '\0') encrypted[last++] = input[pos++];
         encrypted[last]='\0';
         return ;
@@ -49,7 +51,7 @@ void encrypt_message(char* input, char* encrypted) {
         char query[256], message[256];
         sscanf(input,"$%s %s",query,message);
         // no encryption for request to server
-        if( (strcmp(query,"CREATE") == 0) || (strcmp(query,"JOIN") == 0) || (strcmp(query,"LEAVE") == 0)  ){
+        if(!strcmp(query,"CREATE") || !strcmp(query,"JOIN") || !strcmp(query,"LEAVE") ) {
             while(input[pos] != '\0') encrypted[last++] = input[pos++];
             encrypted[last]='\0';
             return ;

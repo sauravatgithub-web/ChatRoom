@@ -15,6 +15,8 @@
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 256
 #define EXIT_KEYWORD "EXIT"
+#define SHOW_GROUPS "SHOW_ALL_GROUPS"
+#define SHOW_CLIENTS "SHOW_ALL_CLIENTS"
 
 typedef struct {
     int socket;
@@ -328,6 +330,9 @@ int main(int argc, char *argv[]) {
                         buffer[n] = '\0';
                         char *sender_name = get_client_name(i);       // Retrieving client's name
                         char message[BUFFER_SIZE + 50 + 30];
+                        int index = get_client(sender_name);
+                        clients[index].last_active = time(NULL);
+                        printf("%d ", index);
                         
                         char timestamp[30];
                         bzero(timestamp, sizeof(timestamp));
@@ -340,8 +345,38 @@ int main(int argc, char *argv[]) {
                             continue;
                         }
 
-                        int index = get_client(sender_name);
-                        clients[index].last_active = time(NULL);
+                        if(!strcmp(buffer, SHOW_CLIENTS)) {            // Handling client request to show all clients
+                            char private_message[BUFFER_SIZE];
+                            memset(private_message, 0, BUFFER_SIZE);
+                            snprintf(private_message, sizeof(private_message), ">> ALIVE CLIENTS AT THIS MOMENT....");
+                            send(i, private_message, strlen(private_message), 0);
+
+                            for(int k = 0; k < MAX_CLIENTS; k++) {
+                                if(clients[k].socket) {
+                                    printf("%d ", k);
+                                    memset(private_message, 0, BUFFER_SIZE);
+                                    snprintf(private_message, sizeof(private_message), ">>   --> %s...", clients[k].name);
+                                    send(i, private_message, strlen(private_message), 0);
+                                }
+                            }
+                            continue;
+                        }
+
+                        if(!strcmp(buffer, SHOW_GROUPS)) {             // Handling client request to show all groups
+                            char private_message[BUFFER_SIZE];
+                            memset(private_message, 0, BUFFER_SIZE);
+                            snprintf(private_message, sizeof(private_message), ">> ALIVE GROUPS AT THIS MOMENT....");
+                            send(clients[index].socket, private_message, strlen(private_message), 0);
+
+                            for(int k = 0; k < MAX_GROUPS; k++) {
+                                if(groups[k].groupID) {
+                                    memset(private_message, 0, BUFFER_SIZE);
+                                    snprintf(private_message, sizeof(private_message), ">>   --> %s...", groups[k].groupName);
+                                    send(i, private_message, strlen(private_message), 0);
+                                }
+                            }
+                            continue;
+                        }
 
                         // PRIVATE OR GROUP MESSAGING
                         // private message format "@username <message>"
