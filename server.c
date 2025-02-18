@@ -215,7 +215,9 @@ int main(int argc, char *argv[]) {
                             }
                         }
                         if(found) {
+                            send(newsockfd, ">> User with same name already exists.", 40, 0);
                             close(newsockfd);
+                            FD_CLR(newsockfd, &master_fds);
                             continue;
                         }
 
