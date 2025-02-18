@@ -49,7 +49,7 @@ void encrypt_message(char* input, char* encrypted) {
         char query[256], message[256];
         sscanf(input,"$%s %s",query,message);
         // no encryption for request to server
-        if( (strcmp(query,"CREATE") == 0) || (strcmp(query,"JOIN") == 0) || (strcmp(query,"LEAVE") == 0) || (strcmp(query,"SHOWALL")==0 ) ){
+        if( (strcmp(query,"CREATE") == 0) || (strcmp(query,"JOIN") == 0) || (strcmp(query,"LEAVE") == 0) || (strcmp(query,"SHOW_ALL")==0 ) ){
             while(input[pos] != '\0') encrypted[last++] = input[pos++];
             encrypted[last]='\0';
             return ;

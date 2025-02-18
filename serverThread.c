@@ -113,7 +113,6 @@ void reportCheck(int ridx) {
 
         close(clients[ridx].socket);
         clients[ridx].socket = 0;
-        fflush(stdin);
     }
 }
 
@@ -190,7 +189,7 @@ void* myClientThreadFunc(void* ind){
             char target_name[50], message[BUFFER_SIZE];
             sscanf(buffer, "@%s %[^\n]", target_name, message);
             
-            if(strcmp(target_name,"SHOWALL")==0){
+            if(strcmp(target_name,"SHOW_ALL")==0){
                 // SHOWALL command to show all the clients connected to the server
                 char private_message[BUFFER_SIZE];
                 bzero(private_message, sizeof(private_message));
@@ -292,7 +291,7 @@ void* myClientThreadFunc(void* ind){
             char group_name[50], message[BUFFER_SIZE];
             sscanf(buffer, "$%s %[^\n]", group_name, message);
 
-            if(strcmp(group_name,"SHOWALL")==0){
+            if(strcmp(group_name,"SHOW_ALL")==0){
                 // SHOWALL command to show all the groups connected to the server
                 char private_message[BUFFER_SIZE];
                 bzero(private_message, sizeof(private_message));
@@ -603,7 +602,7 @@ void *server_thread(void *arg){
                         if(groups[i].indexNumbers[j]!=-1){
                             if(clients[groups[i].indexNumbers[j]].socket != 0) {
                                 char message[BUFFER_SIZE];
-                                int nz = snprintf(message, sizeof(message), ">> GROUP DELETED BY THE SERVER...");
+                                int nz = snprintf(message, sizeof(message), ">> %s GROUP DELETED BY THE SERVER...",groups[i].groupName);
                                 write(clients[groups[i].indexNumbers[j]].socket, message, strlen(message)); 
                             }
                             groups[i].indexNumbers[j]=-1;
