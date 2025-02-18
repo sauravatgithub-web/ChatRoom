@@ -506,7 +506,7 @@ int main(int argc, char *argv[]) {
                                         if(group_found == 1) break;
 
                                         for(int j = 0; j < MAX_CLIENTS; j++) {          // Sending messages to all members in the group
-                                            if(index != j && groups[p].indexNumbers[j] != -1) {
+                                            if(groups[p].indexNumbers[j] != index && groups[p].indexNumbers[j] != -1) {
                                                 memset(private_message, 0, sizeof(private_message));
                                                 snprintf(private_message, sizeof(private_message), "[%s]%s%s : %s", group_name, timestamp, clients[index].name, message);
 
