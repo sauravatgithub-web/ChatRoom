@@ -207,6 +207,18 @@ int main(int argc, char *argv[]) {
                         read(newsockfd, buffer, BUFFER_SIZE - 1);
                         buffer[strcspn(buffer, "\n")] = 0;
 
+                        bool found = false;
+                        for(int z = 0; z < MAX_CLIENTS; z++) {
+                            if(clients[z].socket != 0 && !strcmp(clients[z].name, buffer)) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if(found) {
+                            close(newsockfd);
+                            continue;
+                        }
+
                         // Adding client to list
                         for(int j = 0; j < MAX_CLIENTS; j++) {
                             if(clients[j].socket == 0) {
@@ -343,7 +355,7 @@ int main(int argc, char *argv[]) {
                                 send(recipient_socket, message, strnlen(message, sizeof(message)), 0);  // Writing to the client
                             } 
                             else { // User not found
-                                send(i, "User not found.\n", 16, 0);
+                                send(i, ">> User not found.\n", 20, 0);
                             }
                         } 
                         // REPORTING
@@ -398,6 +410,7 @@ int main(int argc, char *argv[]) {
                                     }
                                 }
                                 for(int i = 0; i < MAX_GROUPS; i++) {
+                                    if(group_avail == 2) break;
                                     if(!groups[i].groupID) {                // Successfully creating a group
                                         group_avail = 1;
                                         groups[i].groupID = i + 1;
