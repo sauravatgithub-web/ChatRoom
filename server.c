@@ -332,7 +332,7 @@ int main(int argc, char *argv[]) {
                         char message[BUFFER_SIZE + 50 + 30];
                         int index = get_client(sender_name);
                         clients[index].last_active = time(NULL);
-                        printf("%d ", index);
+                        // printf("%d ", index);
                         
                         char timestamp[30];
                         bzero(timestamp, sizeof(timestamp));
@@ -353,7 +353,7 @@ int main(int argc, char *argv[]) {
 
                             for(int k = 0; k < MAX_CLIENTS; k++) {
                                 if(clients[k].socket) {
-                                    printf("%d ", k);
+                                    // printf("%d ", k);
                                     memset(private_message, 0, BUFFER_SIZE);
                                     snprintf(private_message, sizeof(private_message), ">>   --> %s...", clients[k].name);
                                     send(i, private_message, strlen(private_message), 0);
