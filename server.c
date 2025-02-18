@@ -494,11 +494,11 @@ int main(int argc, char *argv[]) {
                             else {                                                   // GROUP MESSAGING
                                 // message format <$groupName message>
                                 int group_found = 0;
-                                for(int i = 0; i < MAX_GROUPS; i++) {
-                                    if(groups[i].groupID && !strcmp(groups[i].groupName, group_name)) {    // Searching for the group
+                                for(int p = 0; p < MAX_GROUPS; p++) {
+                                    if(groups[p].groupID && !strcmp(groups[p].groupName, group_name)) {    // Searching for the group
                                         group_found = 1;
                                         for(int j = 0; j < MAX_CLIENTS; j++) {
-                                            if(groups[i].indexNumbers[j] == index) {
+                                            if(groups[p].indexNumbers[j] == index) {
                                                 group_found = 2;
                                                 break;
                                             }
@@ -506,12 +506,12 @@ int main(int argc, char *argv[]) {
                                         if(group_found == 1) break;
 
                                         for(int j = 0; j < MAX_CLIENTS; j++) {          // Sending messages to all members in the group
-                                            if(groups[i].indexNumbers[j] != -1) {
+                                            if(index != j && groups[p].indexNumbers[j] != -1) {
                                                 memset(private_message, 0, sizeof(private_message));
                                                 snprintf(private_message, sizeof(private_message), "[%s]%s%s : %s", group_name, timestamp, clients[index].name, message);
 
-                                                if(clients[groups[i].indexNumbers[j]].socket != 0) {
-                                                    send(clients[groups[i].indexNumbers[j]].socket, private_message, strlen(private_message), 0);
+                                                if(clients[groups[p].indexNumbers[j]].socket != 0) {
+                                                    send(clients[groups[p].indexNumbers[j]].socket, private_message, strlen(private_message), 0);
                                                 }
                                             }
                                         }
