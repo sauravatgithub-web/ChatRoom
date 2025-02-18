@@ -121,6 +121,7 @@ void decrypt_message(char* input, char* decrypted) {
     int i = 0, j = 0;
     char fileName[256];
     bool gotFile = false;
+    memset(decrypted, 0, BUFFER_SIZE * 3);
 
     // no decryption for direct response from server
     if(input[0] == '>'){
@@ -193,6 +194,7 @@ void* listen_messages(void *arg) {
 
     while(true){
         memset(buffer, 0, BUFFER_SIZE);
+        memset(decrypt, 0, BUFFER_SIZE * 3);
         ssize_t n = read(sockfd, buffer, BUFFER_SIZE - 1);
         if(n > 0) {
             buffer[n] = '\0';
