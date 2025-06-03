@@ -102,7 +102,7 @@ Command to start client.c
 ![siteimage](Gallery/Screenshot%20from%202025-02-15%2017-02-20.png)<br>
 
 ## Github Link
-[GITHUB LINK OF THE PROJECT](https://github.com/pntu007/ChatRoom/tree/main)
+[GITHUB LINK OF THE PROJECT]([https://github.com/sauravatgithub-web/ChatRoom])
 
 ## Contributors
 - **Saurav Kumar Singh (22CS01010)**
